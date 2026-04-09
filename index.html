@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VA Dashboard Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <style>
 body {
   font-family: Arial;
@@ -17,10 +18,7 @@ body {
   margin: auto;
   padding: 20px;
 }
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
-}
+h1 { text-align: center; margin-bottom: 20px; }
 .card {
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
@@ -35,61 +33,29 @@ input, select, button {
   width: 100%;
   border-radius: 10px;
   border: none;
-  outline: none;
 }
 button {
   background: linear-gradient(90deg,#38bdf8,#6366f1);
   color: white;
   cursor: pointer;
-  transition: 0.3s;
   font-weight: bold;
 }
-button:hover {
-  transform: scale(1.02);
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  padding: 10px;
-  text-align: center;
-}
-th {
-  background: #38bdf8;
-  color: black;
-}
-tr:nth-child(even) {
-  background: rgba(255,255,255,0.05);
-}
-.badge {
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-weight: bold;
-}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; text-align: center; }
+th { background: #38bdf8; color: black; }
+tr:nth-child(even) { background: rgba(255,255,255,0.05); }
+
+.badge { padding: 5px 10px; border-radius: 8px; font-weight: bold; }
 .green { background:#22c55e; }
 .orange { background:#f59e0b; }
 .gray { background:#64748b; }
-.red { background:#ef4444; }
-.flex {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4,1fr);
-  gap: 10px;
-  text-align: center;
-}
-.alert {
-  background: #ef4444;
-  padding: 10px;
-  border-radius: 10px;
-  margin-bottom: 8px;
-}
+
+.flex { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; text-align: center; }
+.alert { background: #ef4444; padding: 10px; border-radius: 10px; margin-bottom: 8px; }
 </style>
 </head>
+
 <body>
 <div class="container">
 
@@ -124,6 +90,7 @@ tr:nth-child(even) {
 </select>
 <input type="date" id="startDate">
 </div>
+
 <button onclick="addVA()">Add VA</button>
 <button onclick="exportExcel()">Export to Excel</button>
 </div>
@@ -138,12 +105,14 @@ tr:nth-child(even) {
 <option>Rezyl</option>
 <option>Karla</option>
 </select>
+
 <select id="filterTag" onchange="render()">
 <option value="">Filter by VA Tag</option>
 <option>Combo VA</option>
 <option>General VA</option>
 <option>Executive Assistant</option>
 </select>
+
 <input id="searchName" placeholder="Search VA Name" onkeyup="render()">
 </div>
 </div>
@@ -162,8 +131,30 @@ tr:nth-child(even) {
 </div>
 
 <script>
-let data = JSON.parse(localStorage.getItem('vaDataPro')) || [];
 
+/* =========================
+   🔥 SHARED DATA (GITHUB)
+========================= */
+let data = [];
+
+/* =========================
+   LOAD FROM data.json
+========================= */
+async function loadData() {
+  try {
+    const res = await fetch('./data.json?v=' + Date.now());
+    data = await res.json();
+    render();
+  } catch (e) {
+    console.log("Error loading data.json", e);
+    data = [];
+    render();
+  }
+}
+
+/* =========================
+   DATE FUNCTIONS
+========================= */
 function calc45(date) {
   let d = new Date(date);
   d.setDate(d.getDate() + 45);
@@ -176,13 +167,9 @@ function daysLeft(start) {
   return Math.ceil((wfh - today) / (1000 * 60 * 60 * 24));
 }
 
-function getStatus(start) {
-  let diff = (new Date() - new Date(start)) / (1000 * 60 * 60 * 24);
-  if (diff >= 45) return 'ready';
-  if (diff >= 35) return 'near';
-  return 'normal';
-}
-
+/* =========================
+   ADD VA
+========================= */
 function addVA() {
   let obj = {
     name: vaName.value,
@@ -192,14 +179,18 @@ function addVA() {
     start: startDate.value
   };
 
-  if (!obj.name || !obj.start || !obj.tl || !obj.tag) return alert('Complete fields');
+  if (!obj.name || !obj.start || !obj.tl || !obj.tag)
+    return alert('Complete fields');
 
   data.push(obj);
-  save();
+
   render();
   clear();
 }
 
+/* =========================
+   RENDER TABLE
+========================= */
 function render() {
   let table = document.getElementById('table');
   let alertBox = document.getElementById('alertBox');
@@ -213,24 +204,24 @@ function render() {
   let fTag = filterTag.value.toLowerCase();
   let search = searchName.value.toLowerCase();
 
-  let sorted = [...data].sort((a, b) => daysLeft(a.start) - daysLeft(b.start));
+  let sorted = [...data].sort((a,b)=>daysLeft(a.start)-daysLeft(b.start));
 
   sorted.forEach(d => {
+
     if (fTL && d.tl.toLowerCase() !== fTL) return;
     if (fTag && d.tag.toLowerCase() !== fTag) return;
     if (search && !d.name.toLowerCase().includes(search)) return;
 
     let wfhDate = calc45(d.start);
     let left = daysLeft(d.start);
-
-    let diff = (new Date() - new Date(d.start)) / (1000 * 60 * 60 * 24);
+    let diff = (new Date() - new Date(d.start)) / (1000*60*60*24);
 
     if (diff >= 35) near++;
     if (diff >= 45) ready++;
 
     if (left <= 3 && left >= 0) {
       urgent++;
-      alertBox.innerHTML += `<div class=\"alert\">⚠️ ${d.name} (${d.tl}) will reach 45 days in ${left} day(s)</div>`;
+      alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} (${d.tl}) in ${left} day(s)</div>`;
     }
 
     total++;
@@ -246,30 +237,35 @@ function render() {
         <td>${d.tl}</td>
         <td>${d.start}</td>
         <td>${wfhDate.toISOString().split('T')[0]}</td>
-        <td><span class=\"badge ${badgeClass}\">${badgeText}</span></td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
         <td>${left}</td>
         <td>
-          <button onclick=\"editVA(${data.indexOf(d)})\">Edit</button>
-          <button onclick=\"deleteVA(${data.indexOf(d)})\">Delete</button>
+          <button onclick="editVA(${data.indexOf(d)})">Edit</button>
+          <button onclick="deleteVA(${data.indexOf(d)})">Delete</button>
         </td>
       </tr>
     `;
   });
 
-  document.getElementById('total').innerText = total;
-  document.getElementById('near').innerText = near;
-  document.getElementById('ready').innerText = ready;
-  document.getElementById('urgent').innerText = urgent;
+  totalEl.textContent = total;
+  nearEl.textContent = near;
+  readyEl.textContent = ready;
+  urgentEl.textContent = urgent;
 }
 
+/* =========================
+   DELETE
+========================= */
 function deleteVA(i) {
   if (confirm('Delete?')) {
-    data.splice(i, 1);
-    save();
+    data.splice(i,1);
     render();
   }
 }
 
+/* =========================
+   EDIT
+========================= */
 function editVA(i) {
   let d = data[i];
   vaName.value = d.name;
@@ -280,10 +276,9 @@ function editVA(i) {
   deleteVA(i);
 }
 
-function save() {
-  localStorage.setItem('vaDataPro', JSON.stringify(data));
-}
-
+/* =========================
+   CLEAR FORM
+========================= */
 function clear() {
   vaName.value = '';
   vaTag.value = '';
@@ -292,6 +287,9 @@ function clear() {
   startDate.value = '';
 }
 
+/* =========================
+   EXPORT EXCEL
+========================= */
 function exportExcel() {
   let exportData = data.map(d => ({
     Name: d.name,
@@ -308,7 +306,11 @@ function exportExcel() {
   XLSX.writeFile(wb, "VA_Dashboard.xlsx");
 }
 
-render();
+/* =========================
+   START APP
+========================= */
+loadData();
+
 </script>
 
 </body>
