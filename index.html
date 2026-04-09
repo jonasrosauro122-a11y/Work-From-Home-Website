@@ -41,6 +41,14 @@ table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px; text-align: center; }
 th { background: #38bdf8; color: black; }
 tr:nth-child(even) { background: rgba(255,255,255,0.05); }
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+.green { background: #22c55e; }
+.orange { background: #f59e0b; }
+.gray { background: #64748b; }
 </style>
 </head>
 
@@ -84,6 +92,9 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <th>Agency</th>
 <th>TL</th>
 <th>Start</th>
+<th>WFH</th>
+<th>Status</th>
+<th>Days Left</th>
 <th>Actions</th>
 </tr>
 </thead>
@@ -105,6 +116,17 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 let data = [];
 let editingId = null;
 
+/* ================= HELPERS ================= */
+function calc45(date) {
+  let d = new Date(date);
+  d.setDate(d.getDate() + 45);
+  return d;
+}
+
+function daysLeft(start) {
+  return Math.ceil((calc45(start) - new Date()) / (1000 * 60 * 60 * 24));
+}
+
 /* ================= LOAD ================= */
 async function loadData() {
   const { data: result, error } = await supabaseClient
@@ -123,11 +145,11 @@ async function loadData() {
 
 /* ================= SAVE ================= */
 async function addVA() {
-  const name = document.getElementById("vaName").value;
-  const tag = document.getElementById("vaTag").value;
-  const agency = document.getElementById("agency").value;
-  const tl = document.getElementById("tl").value;
-  const start = document.getElementById("startDate").value;
+  const name = vaName.value;
+  const tag = vaTag.value;
+  const agency = agency.value;
+  const tl = tl.value;
+  const start = startDate.value;
 
   if (!name || !tag || !agency || !tl || !start) {
     alert("Complete all fields");
@@ -139,14 +161,9 @@ async function addVA() {
   let result;
 
   if (editingId) {
-    result = await supabaseClient
-      .from('vas')
-      .update(payload)
-      .eq('id', editingId);
+    result = await supabaseClient.from('vas').update(payload).eq('id', editingId);
   } else {
-    result = await supabaseClient
-      .from('vas')
-      .insert([payload]);
+    result = await supabaseClient.from('vas').insert([payload]);
   }
 
   if (result.error) {
@@ -168,22 +185,22 @@ async function deleteVA(id) {
 function editVA(id) {
   const v = data.find(x => x.id === id);
 
-  document.getElementById("vaName").value = v.name;
-  document.getElementById("vaTag").value = v.tag;
-  document.getElementById("agency").value = v.agency;
-  document.getElementById("tl").value = v.tl;
-  document.getElementById("startDate").value = v.start;
+  vaName.value = v.name;
+  vaTag.value = v.tag;
+  agency.value = v.agency;
+  tl.value = v.tl;
+  startDate.value = v.start;
 
   editingId = id;
 }
 
 /* ================= CLEAR ================= */
 function clear() {
-  document.getElementById("vaName").value = "";
-  document.getElementById("vaTag").value = "";
-  document.getElementById("agency").value = "";
-  document.getElementById("tl").value = "";
-  document.getElementById("startDate").value = "";
+  vaName.value = "";
+  vaTag.value = "";
+  agency.value = "";
+  tl.value = "";
+  startDate.value = "";
   editingId = null;
 }
 
@@ -193,6 +210,13 @@ function render() {
   table.innerHTML = "";
 
   data.forEach(d => {
+
+    let left = daysLeft(d.start);
+    let diff = (new Date() - new Date(d.start)) / 86400000;
+
+    let status = diff >= 45 ? "Ready" : diff >= 35 ? "Near" : "Normal";
+    let badge = diff >= 45 ? "green" : diff >= 35 ? "orange" : "gray";
+
     table.innerHTML += `
       <tr>
         <td>${d.name}</td>
@@ -200,6 +224,9 @@ function render() {
         <td>${d.agency}</td>
         <td>${d.tl}</td>
         <td>${d.start}</td>
+        <td>${calc45(d.start).toISOString().split("T")[0]}</td>
+        <td><span class="badge ${badge}">${status}</span></td>
+        <td>${left}</td>
         <td>
           <button onclick="editVA(${d.id})">Edit</button>
           <button onclick="deleteVA(${d.id})">Delete</button>
