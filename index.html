@@ -133,9 +133,19 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <script>
 
 /* =========================
-   🔥 SHARED DATA (GITHUB)
+   🔥 GITHUB CONFIG (PUT FIRST)
+========================= */
+const GITHUB_USER = "YOUR_USERNAME";
+const REPO_NAME = "YOUR_REPO";
+const FILE_PATH = "data.json";
+const BRANCH = "main";
+const TOKEN = "YOUR_GITHUB_TOKEN";
+
+/* =========================
+   🔥 SHARED DATA
 ========================= */
 let data = [];
+  
 
 /* =========================
    LOAD FROM data.json
