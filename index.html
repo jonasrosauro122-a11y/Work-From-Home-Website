@@ -201,11 +201,21 @@ async function addVA() {
     start: startDate.value
   };
 
+  console.log("Saving:", payload);
+
+  let result;
+
   if (editingId) {
-    await supabase.from('vas').update(payload).eq('id', editingId);
-    editingId = null;
+    result = await supabase.from('vas').update(payload).eq('id', editingId);
   } else {
-    await supabase.from('vas').insert([payload]);
+    result = await supabase.from('vas').insert([payload]);
+  }
+
+  console.log("Supabase result:", result);
+
+  if (result.error) {
+    alert("Error: " + result.error.message);
+    return;
   }
 
   clear();
