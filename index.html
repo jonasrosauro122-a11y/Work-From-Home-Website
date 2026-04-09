@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VA Dashboard Pro</title>
+<title>LAVA VA Dashboard Pro</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
@@ -13,20 +14,17 @@ body {
   background: linear-gradient(135deg,#0f172a,#1e293b);
   color: #fff;
 }
-.container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 20px;
-}
-h1 { text-align: center; margin-bottom: 20px; }
+.container { max-width: 1200px; margin: auto; padding: 20px; }
+h1 { text-align: center; }
+
 .card {
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
   padding: 15px;
   border-radius: 14px;
   margin-bottom: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
+
 input, select, button {
   padding: 10px;
   margin: 5px 0;
@@ -34,25 +32,28 @@ input, select, button {
   border-radius: 10px;
   border: none;
 }
+
 button {
   background: linear-gradient(90deg,#38bdf8,#6366f1);
   color: white;
   cursor: pointer;
   font-weight: bold;
 }
+
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px; text-align: center; }
 th { background: #38bdf8; color: black; }
 tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 
-.badge { padding: 5px 10px; border-radius: 8px; font-weight: bold; }
+.badge { padding: 5px 10px; border-radius: 8px; }
 .green { background:#22c55e; }
 .orange { background:#f59e0b; }
 .gray { background:#64748b; }
 
 .flex { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; text-align: center; }
-.alert { background: #ef4444; padding: 10px; border-radius: 10px; margin-bottom: 8px; }
+
+.alert { background: #ef4444; padding: 10px; border-radius: 10px; margin-bottom: 5px; }
 </style>
 </head>
 
@@ -64,8 +65,8 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <div class="card stats">
 <div>Total VAs: <span id="total">0</span></div>
 <div>Near 45 Days: <span id="near">0</span></div>
-<div>Ready for WFH: <span id="ready">0</span></div>
-<div>Urgent (≤3 days): <span id="urgent">0</span></div>
+<div>Ready: <span id="ready">0</span></div>
+<div>Urgent: <span id="urgent">0</span></div>
 </div>
 
 <div id="alertBox"></div>
@@ -79,26 +80,29 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <option>General VA</option>
 <option>Executive Assistant</option>
 </select>
+
 <input id="agency" placeholder="Agency">
+
 <select id="tl">
-<option value="">Select Team Leader</option>
+<option value="">Team Leader</option>
 <option>Martin</option>
 <option>RJ</option>
 <option>Ed</option>
 <option>Rezyl</option>
 <option>Karla</option>
 </select>
+
 <input type="date" id="startDate">
 </div>
 
 <button onclick="addVA()">Add VA</button>
-<button onclick="exportExcel()">Export to Excel</button>
+<button onclick="exportExcel()">Export</button>
 </div>
 
 <div class="card">
 <div class="flex">
 <select id="filterTL" onchange="render()">
-<option value="">Filter by TL</option>
+<option value="">Filter TL</option>
 <option>Martin</option>
 <option>RJ</option>
 <option>Ed</option>
@@ -107,13 +111,13 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 </select>
 
 <select id="filterTag" onchange="render()">
-<option value="">Filter by VA Tag</option>
+<option value="">Filter Tag</option>
 <option>Combo VA</option>
 <option>General VA</option>
 <option>Executive Assistant</option>
 </select>
 
-<input id="searchName" placeholder="Search VA Name" onkeyup="render()">
+<input id="searchName" placeholder="Search" onkeyup="render()">
 </div>
 </div>
 
@@ -121,7 +125,7 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <table>
 <thead>
 <tr>
-<th>Name</th><th>Tag</th><th>Agency</th><th>TL</th><th>Start</th><th>WFH (45th Day)</th><th>Status</th><th>Days Left</th><th>Actions</th>
+<th>Name</th><th>Tag</th><th>Agency</th><th>TL</th><th>Start</th><th>WFH</th><th>Status</th><th>Days Left</th><th>Actions</th>
 </tr>
 </thead>
 <tbody id="table"></tbody>
@@ -132,39 +136,27 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 
 <script>
 
-/* =========================
-   🔥 GITHUB CONFIG (PUT FIRST)
-========================= */
+/* ================= CONFIG ================= */
 const GITHUB_USER = "jonasrosauro122-a11y";
 const REPO_NAME = "Work-From-Home-Website";
 const FILE_PATH = "data.json";
 const BRANCH = "main";
 const TOKEN = "NEW_TOKEN_HERE";
 
-/* =========================
-   🔥 SHARED DATA
-========================= */
+/* ================= STATE ================= */
 let data = [];
-  
 
-/* =========================
-   LOAD FROM data.json
-========================= */
-async function loadData() {
-  try {
-    const res = await fetch('./data.json?v=' + Date.now());
-    data = await res.json();
-    render();
-  } catch (e) {
-    console.log("Error loading data.json", e);
-    data = [];
-    render();
-  }
-}
+/* ================= DOM CACHE ================= */
+const els = {
+  total: document.getElementById("total"),
+  near: document.getElementById("near"),
+  ready: document.getElementById("ready"),
+  urgent: document.getElementById("urgent"),
+  table: document.getElementById("table"),
+  alertBox: document.getElementById("alertBox")
+};
 
-/* =========================
-   DATE FUNCTIONS
-========================= */
+/* ================= HELPERS ================= */
 function calc45(date) {
   let d = new Date(date);
   d.setDate(d.getDate() + 45);
@@ -172,47 +164,123 @@ function calc45(date) {
 }
 
 function daysLeft(start) {
-  let wfh = calc45(start);
-  let today = new Date();
-  return Math.ceil((wfh - today) / (1000 * 60 * 60 * 24));
+  return Math.ceil((calc45(start) - new Date()) / (1000 * 60 * 60 * 24));
 }
 
-/* =========================
-   ADD VA
-========================= */
+/* ================= LOAD ================= */
+async function loadData() {
+  try {
+    const res = await fetch('./data.json?v=' + Date.now());
+    data = await res.json();
+  } catch {
+    data = [];
+  }
+  render();
+}
+
+/* ================= GITHUB SAVE (SAFE + DEBOUNCED) ================= */
+let saveTimeout;
+
+function queueSave() {
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveToGitHub, 1500);
+}
+
+async function saveToGitHub() {
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${FILE_PATH}`;
+
+    const getRes = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+
+    const file = await getRes.json();
+    const sha = file.sha;
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+
+    await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "VA Dashboard update",
+        content,
+        sha,
+        branch: BRANCH
+      })
+    });
+
+  } catch (err) {
+    console.log("Save error", err);
+  }
+}
+
+/* ================= ADD ================= */
 function addVA() {
-  let obj = {
-    name: vaName.value,
+  if (!vaName.value || !startDate.value || !tl.value || !vaTag.value)
+    return alert("Complete fields");
+
+  data.push({
+    id: Date.now(),
+    name: vaName.value.trim(),
     tag: vaTag.value,
-    agency: agency.value,
+    agency: agency.value.trim(),
     tl: tl.value,
     start: startDate.value
-  };
+  });
 
-  if (!obj.name || !obj.start || !obj.tl || !obj.tag)
-    return alert('Complete fields');
-
-  data.push(obj);
-
-  render();
   clear();
+  render();
+  queueSave();
 }
 
-/* =========================
-   RENDER TABLE
-========================= */
+/* ================= DELETE ================= */
+function deleteVA(id) {
+  if (!confirm("Delete?")) return;
+
+  data = data.filter(v => v.id !== id);
+  render();
+  queueSave();
+}
+
+/* ================= EDIT ================= */
+function editVA(id) {
+  let d = data.find(v => v.id === id);
+
+  vaName.value = d.name;
+  vaTag.value = d.tag;
+  agency.value = d.agency;
+  tl.value = d.tl;
+  startDate.value = d.start;
+
+  deleteVA(id);
+}
+
+/* ================= CLEAR ================= */
+function clear() {
+  vaName.value = "";
+  vaTag.value = "";
+  agency.value = "";
+  tl.value = "";
+  startDate.value = "";
+}
+
+/* ================= RENDER ================= */
 function render() {
-  let table = document.getElementById('table');
-  let alertBox = document.getElementById('alertBox');
-
-  table.innerHTML = '';
-  alertBox.innerHTML = '';
-
   let total = 0, near = 0, ready = 0, urgent = 0;
 
   let fTL = filterTL.value.toLowerCase();
   let fTag = filterTag.value.toLowerCase();
   let search = searchName.value.toLowerCase();
+
+  els.table.innerHTML = "";
+  els.alertBox.innerHTML = "";
 
   let sorted = [...data].sort((a,b)=>daysLeft(a.start)-daysLeft(b.start));
 
@@ -222,84 +290,47 @@ function render() {
     if (fTag && d.tag.toLowerCase() !== fTag) return;
     if (search && !d.name.toLowerCase().includes(search)) return;
 
-    let wfhDate = calc45(d.start);
     let left = daysLeft(d.start);
-    let diff = (new Date() - new Date(d.start)) / (1000*60*60*24);
+    let diff = (new Date() - new Date(d.start)) / (86400000);
 
     if (diff >= 35) near++;
     if (diff >= 45) ready++;
 
     if (left <= 3 && left >= 0) {
       urgent++;
-      alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} (${d.tl}) in ${left} day(s)</div>`;
+      els.alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} - ${left} days left</div>`;
     }
 
     total++;
 
-    let badgeClass = diff >= 45 ? 'green' : diff >= 35 ? 'orange' : 'gray';
-    let badgeText = diff >= 45 ? 'Ready' : diff >= 35 ? 'Near' : 'Normal';
+    let badge = diff >= 45 ? "green" : diff >= 35 ? "orange" : "gray";
+    let text = diff >= 45 ? "Ready" : diff >= 35 ? "Near" : "Normal";
 
-    table.innerHTML += `
+    els.table.innerHTML += `
       <tr>
         <td>${d.name}</td>
         <td>${d.tag}</td>
         <td>${d.agency}</td>
         <td>${d.tl}</td>
         <td>${d.start}</td>
-        <td>${wfhDate.toISOString().split('T')[0]}</td>
-        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td>${calc45(d.start).toISOString().split("T")[0]}</td>
+        <td><span class="badge ${badge}">${text}</span></td>
         <td>${left}</td>
         <td>
-          <button onclick="editVA(${data.indexOf(d)})">Edit</button>
-          <button onclick="deleteVA(${data.indexOf(d)})">Delete</button>
+          <button onclick="editVA(${d.id})">Edit</button>
+          <button onclick="deleteVA(${d.id})">Delete</button>
         </td>
       </tr>
     `;
   });
 
-  totalEl.textContent = total;
-  nearEl.textContent = near;
-  readyEl.textContent = ready;
-  urgentEl.textContent = urgent;
+  els.total.textContent = total;
+  els.near.textContent = near;
+  els.ready.textContent = ready;
+  els.urgent.textContent = urgent;
 }
 
-/* =========================
-   DELETE
-========================= */
-function deleteVA(i) {
-  if (confirm('Delete?')) {
-    data.splice(i,1);
-    render();
-  }
-}
-
-/* =========================
-   EDIT
-========================= */
-function editVA(i) {
-  let d = data[i];
-  vaName.value = d.name;
-  vaTag.value = d.tag;
-  agency.value = d.agency;
-  tl.value = d.tl;
-  startDate.value = d.start;
-  deleteVA(i);
-}
-
-/* =========================
-   CLEAR FORM
-========================= */
-function clear() {
-  vaName.value = '';
-  vaTag.value = '';
-  agency.value = '';
-  tl.value = '';
-  startDate.value = '';
-}
-
-/* =========================
-   EXPORT EXCEL
-========================= */
+/* ================= EXPORT ================= */
 function exportExcel() {
   let exportData = data.map(d => ({
     Name: d.name,
@@ -307,7 +338,7 @@ function exportExcel() {
     Agency: d.agency,
     TL: d.tl,
     Start: d.start,
-    WFH: calc45(d.start).toISOString().split('T')[0]
+    WFH: calc45(d.start).toISOString().split("T")[0]
   }));
 
   let ws = XLSX.utils.json_to_sheet(exportData);
@@ -316,9 +347,7 @@ function exportExcel() {
   XLSX.writeFile(wb, "VA_Dashboard.xlsx");
 }
 
-/* =========================
-   START APP
-========================= */
+/* ================= INIT ================= */
 loadData();
 
 </script>
