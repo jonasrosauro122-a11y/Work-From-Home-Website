@@ -5,7 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VA Dashboard Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+
+/* ================= NOTIFICATIONS ================= */
+function checkNotifications() {
+  filteredData.forEach(d => {
+    let left = daysLeft(d.start);
+
+    if (left === 10) {
+      showNotification(`${d.name} has only 10 days left!`);
+    }
+  });
+}
+
+function showNotification(message) {
+  const notif = document.createElement("div");
+  notif.innerText = message;
+
+  notif.style.position = "fixed";
+  notif.style.bottom = "20px";
+  notif.style.right = "20px";
+  notif.style.background = "#f59e0b";
+  notif.style.color = "#000";
+  notif.style.padding = "15px 20px";
+  notif.style.borderRadius = "10px";
+  notif.style.boxShadow = "0 10px 20px rgba(0,0,0,0.3)";
+  notif.style.zIndex = "999";
+  notif.style.fontWeight = "bold";
+  notif.style.animation = "fadeIn 0.5s ease";
+
+  document.body.appendChild(notif);
+
+  setTimeout(() => {
+    notif.remove();
+  }, 5000);
+}
+
+/* ================= INIT ================= */
+loadData();
+
+/* Run notification check every 10 seconds */
+setInterval(checkNotifications, 10000);
+
+</script>
 
 <style>
 body {
@@ -90,7 +132,7 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <body>
 <div class="container">
 
-<h1>LAVA VA Dashboard</h1>
+<h1>VA Dashboard Pro 🚀</h1>
 
 <div class="card">
 <input id="vaName" placeholder="VA Name">
