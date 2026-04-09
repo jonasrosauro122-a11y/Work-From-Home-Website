@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LAVA VA Dashboard Pro</title>
+<title>VA Dashboard Pro</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
@@ -74,6 +75,7 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <div class="card">
 <div class="flex">
 <input id="vaName" placeholder="VA Name">
+
 <select id="vaTag">
 <option value="">Select VA Tag</option>
 <option>Combo VA</option>
@@ -136,25 +138,14 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 
 <script>
 
-/* ================= CONFIG ================= */
-const GITHUB_USER = "jonasrosauro122-a11y";
-const REPO_NAME = "Work-From-Home-Website";
-const FILE_PATH = "data.json";
-const BRANCH = "main";
-const TOKEN = "github_pat_XXXXXXXXXXXXXXXXXXXX";
+/* ================= SUPABASE CONFIG ================= */
+const SUPABASE_URL = "https://rapwcdljrqvurrukumcj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhcHdjZGxqcnF2dXJydWt1bWNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDYwMzUsImV4cCI6MjA5MTMyMjAzNX0.C7XzwOeluKknt6Gx48eI9890uG-XgekLBs_cc7vjojg";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ================= STATE ================= */
 let data = [];
-
-/* ================= DOM CACHE ================= */
-const els = {
-  total: document.getElementById("total"),
-  near: document.getElementById("near"),
-  ready: document.getElementById("ready"),
-  urgent: document.getElementById("urgent"),
-  table: document.getElementById("table"),
-  alertBox: document.getElementById("alertBox")
-};
 
 /* ================= HELPERS ================= */
 function calc45(date) {
@@ -169,84 +160,44 @@ function daysLeft(start) {
 
 /* ================= LOAD ================= */
 async function loadData() {
-  try {
-    const res = await fetch('./data.json?v=' + Date.now());
-    data = await res.json();
-  } catch {
-    data = [];
-  }
+  const { data: result } = await supabase
+    .from('vas')
+    .select('*')
+    .order('id', { ascending: false });
+
+  data = result || [];
   render();
 }
 
-/* ================= GITHUB SAVE (SAFE + DEBOUNCED) ================= */
-let saveTimeout;
-
-function queueSave() {
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveToGitHub, 1500);
-}
-
-async function saveToGitHub() {
-  try {
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${FILE_PATH}`;
-
-    const getRes = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        Accept: "application/vnd.github+json"
-      }
-    });
-
-    const file = await getRes.json();
-    const sha = file.sha;
-
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-
-    await fetch(url, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "VA Dashboard update",
-        content,
-        sha,
-        branch: BRANCH
-      })
-    });
-
-  } catch (err) {
-    console.log("Save error", err);
-  }
-}
-
 /* ================= ADD ================= */
-function addVA() {
+async function addVA() {
   if (!vaName.value || !startDate.value || !tl.value || !vaTag.value)
     return alert("Complete fields");
 
-  data.push({
-    id: Date.now(),
+  const { error } = await supabase.from('vas').insert([{
     name: vaName.value.trim(),
     tag: vaTag.value,
     agency: agency.value.trim(),
     tl: tl.value,
     start: startDate.value
-  });
+  }]);
 
-  clear();
-  render();
-  queueSave();
+  if (!error) {
+    clear();
+    loadData();
+  }
 }
 
 /* ================= DELETE ================= */
-function deleteVA(id) {
+async function deleteVA(id) {
   if (!confirm("Delete?")) return;
 
-  data = data.filter(v => v.id !== id);
-  render();
-  queueSave();
+  const { error } = await supabase
+    .from('vas')
+    .delete()
+    .eq('id', id);
+
+  if (!error) loadData();
 }
 
 /* ================= EDIT ================= */
@@ -279,26 +230,24 @@ function render() {
   let fTag = filterTag.value.toLowerCase();
   let search = searchName.value.toLowerCase();
 
-  els.table.innerHTML = "";
-  els.alertBox.innerHTML = "";
+  table.innerHTML = "";
+  alertBox.innerHTML = "";
 
-  let sorted = [...data].sort((a,b)=>daysLeft(a.start)-daysLeft(b.start));
-
-  sorted.forEach(d => {
+  data.forEach(d => {
 
     if (fTL && d.tl.toLowerCase() !== fTL) return;
     if (fTag && d.tag.toLowerCase() !== fTag) return;
     if (search && !d.name.toLowerCase().includes(search)) return;
 
     let left = daysLeft(d.start);
-    let diff = (new Date() - new Date(d.start)) / (86400000);
+    let diff = (new Date() - new Date(d.start)) / 86400000;
 
     if (diff >= 35) near++;
     if (diff >= 45) ready++;
 
     if (left <= 3 && left >= 0) {
       urgent++;
-      els.alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} - ${left} days left</div>`;
+      alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} - ${left} days left</div>`;
     }
 
     total++;
@@ -306,7 +255,7 @@ function render() {
     let badge = diff >= 45 ? "green" : diff >= 35 ? "orange" : "gray";
     let text = diff >= 45 ? "Ready" : diff >= 35 ? "Near" : "Normal";
 
-    els.table.innerHTML += `
+    table.innerHTML += `
       <tr>
         <td>${d.name}</td>
         <td>${d.tag}</td>
@@ -324,31 +273,23 @@ function render() {
     `;
   });
 
-  els.total.textContent = total;
-  els.near.textContent = near;
-  els.ready.textContent = ready;
-  els.urgent.textContent = urgent;
-}
-
-/* ================= EXPORT ================= */
-function exportExcel() {
-  let exportData = data.map(d => ({
-    Name: d.name,
-    Tag: d.tag,
-    Agency: d.agency,
-    TL: d.tl,
-    Start: d.start,
-    WFH: calc45(d.start).toISOString().split("T")[0]
-  }));
-
-  let ws = XLSX.utils.json_to_sheet(exportData);
-  let wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "VAs");
-  XLSX.writeFile(wb, "VA_Dashboard.xlsx");
+  totalEl.textContent = total;
+  nearEl.textContent = near;
+  readyEl.textContent = ready;
+  urgentEl.textContent = urgent;
 }
 
 /* ================= INIT ================= */
 loadData();
+
+/* ================= REALTIME ================= */
+supabase
+  .channel('vas')
+  .on('postgres_changes',
+    { event: '*', schema: 'public', table: 'vas' },
+    () => loadData()
+  )
+  .subscribe();
 
 </script>
 
