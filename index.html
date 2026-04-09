@@ -5,49 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LAVA VA Dashboard</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-
-/* ================= NOTIFICATIONS ================= */
-function checkNotifications() {
-  filteredData.forEach(d => {
-    let left = daysLeft(d.start);
-
-    if (left === 10) {
-      showNotification(`${d.name} has only 10 days left!`);
-    }
-  });
-}
-
-function showNotification(message) {
-  const notif = document.createElement("div");
-  notif.innerText = message;
-
-  notif.style.position = "fixed";
-  notif.style.bottom = "20px";
-  notif.style.right = "20px";
-  notif.style.background = "#f59e0b";
-  notif.style.color = "#000";
-  notif.style.padding = "15px 20px";
-  notif.style.borderRadius = "10px";
-  notif.style.boxShadow = "0 10px 20px rgba(0,0,0,0.3)";
-  notif.style.zIndex = "999";
-  notif.style.fontWeight = "bold";
-  notif.style.animation = "fadeIn 0.5s ease";
-
-  document.body.appendChild(notif);
-
-  setTimeout(() => {
-    notif.remove();
-  }, 5000);
-}
-
-/* ================= INIT ================= */
-loadData();
-
-/* Run notification check every 10 seconds */
-setInterval(checkNotifications, 10000);
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
@@ -66,7 +24,6 @@ body {
 }
 
 .container { max-width: 1200px; margin: auto; padding: 20px; }
-
 h1 { text-align: center; }
 
 .card {
@@ -76,12 +33,6 @@ h1 { text-align: center; }
   border-radius: 16px;
   margin-bottom: 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 input, select {
@@ -100,17 +51,11 @@ button {
   color: white;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.3s;
 }
 
-button:hover {
-  transform: scale(1.05);
-}
+button:hover { transform: scale(1.05); }
 
-.table-wrapper {
-  overflow-x: auto;
-}
-
+.table-wrapper { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px; text-align: center; }
 th { background: rgba(255,255,255,0.2); }
@@ -123,8 +68,40 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 
 .filters {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+}
+
+/* Scroll Animation */
+.fade-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+
+.fade-scroll.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Urgent */
+.urgent {
+  background: rgba(239, 68, 68, 0.2) !important;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+
+/* Stats */
+.stats {
+  display: flex;
+  justify-content: space-around;
+  font-size: 18px;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -134,6 +111,7 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 
 <h1>LAVA VA Dashboard</h1>
 
+<!-- FORM -->
 <div class="card">
 <input id="vaName" placeholder="VA Name">
 <select id="vaTag">
@@ -155,6 +133,7 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <button onclick="addVA()">Save VA</button>
 </div>
 
+<!-- FILTERS -->
 <div class="card filters">
 <input id="searchInput" placeholder="Search VA name...">
 <select id="filterTL">
@@ -165,9 +144,23 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <option>Rezyl</option>
 <option>Karla</option>
 </select>
+<select id="filterStatus">
+<option value="">Filter by Status</option>
+<option>Ready</option>
+<option>Near</option>
+<option>Normal</option>
+</select>
 <button onclick="applyFilter()">Search</button>
 </div>
 
+<!-- STATS -->
+<div class="card stats">
+<div>Ready: <span id="readyCount">0</span></div>
+<div>Near: <span id="nearCount">0</span></div>
+<div>Normal: <span id="normalCount">0</span></div>
+</div>
+
+<!-- TABLE -->
 <div class="card table-wrapper">
 <table>
 <thead>
@@ -200,6 +193,7 @@ let data = [];
 let filteredData = [];
 let editingId = null;
 
+/* DATE LOGIC */
 function calc45(date) {
   let d = new Date(date);
   d.setDate(d.getDate() + 45);
@@ -210,40 +204,48 @@ function daysLeft(start) {
   return Math.ceil((calc45(start) - new Date()) / (1000 * 60 * 60 * 24));
 }
 
+/* LOAD */
 async function loadData() {
-  const { data: result } = await supabaseClient.from('vas').select('*').order('id', { ascending: false });
-  data = result || [];
+  const { data: result } = await supabaseClient.from('vas').select('*');
+  data = (result || []).sort((a, b) => new Date(a.start) - new Date(b.start));
   filteredData = data;
   render();
 }
 
+/* FILTER */
 function applyFilter() {
-  const search = document.getElementById("searchInput").value.toLowerCase();
-  const tlFilter = document.getElementById("filterTL").value;
+  const search = searchInput.value.toLowerCase();
+  const tlFilter = filterTL.value;
+  const statusFilter = filterStatus.value;
 
   filteredData = data.filter(d => {
+    let diff = (new Date() - new Date(d.start)) / 86400000;
+    let status = diff >= 45 ? "Ready" : diff >= 35 ? "Near" : "Normal";
+
     return (
       d.name.toLowerCase().includes(search) &&
-      (tlFilter === "" || d.tl === tlFilter)
+      (tlFilter === "" || d.tl === tlFilter) &&
+      (statusFilter === "" || status === statusFilter)
     );
   });
 
   render();
 }
 
+/* ADD */
 async function addVA() {
-  const name = document.getElementById("vaName").value;
-  const tag = document.getElementById("vaTag").value;
-  const agency = document.getElementById("agency").value;
-  const tl = document.getElementById("tl").value;
-  const start = document.getElementById("startDate").value;
+  const payload = {
+    name: vaName.value,
+    tag: vaTag.value,
+    agency: agency.value,
+    tl: tl.value,
+    start: startDate.value
+  };
 
-  if (!name || !tag || !agency || !tl || !start) {
+  if (!payload.name || !payload.tag || !payload.agency || !payload.tl || !payload.start) {
     alert("Complete all fields");
     return;
   }
-
-  const payload = { name, tag, agency, tl, start };
 
   if (editingId) {
     await supabaseClient.from('vas').update(payload).eq('id', editingId);
@@ -255,6 +257,7 @@ async function addVA() {
   loadData();
 }
 
+/* DELETE */
 async function deleteVA(id) {
   if (confirm("Delete this VA?")) {
     await supabaseClient.from('vas').delete().eq('id', id);
@@ -262,15 +265,14 @@ async function deleteVA(id) {
   }
 }
 
+/* EDIT */
 function editVA(id) {
   const v = data.find(x => x.id === id);
-
   vaName.value = v.name;
   vaTag.value = v.tag;
   agency.value = v.agency;
   tl.value = v.tl;
   startDate.value = v.start;
-
   editingId = id;
 }
 
@@ -283,9 +285,12 @@ function clear() {
   editingId = null;
 }
 
+/* RENDER */
 function render() {
   const table = document.getElementById("table");
   table.innerHTML = "";
+
+  let ready = 0, near = 0, normal = 0;
 
   filteredData.forEach(d => {
     let left = daysLeft(d.start);
@@ -294,8 +299,14 @@ function render() {
     let status = diff >= 45 ? "Ready" : diff >= 35 ? "Near" : "Normal";
     let badge = diff >= 45 ? "green" : diff >= 35 ? "orange" : "gray";
 
+    if (status === "Ready") ready++;
+    else if (status === "Near") near++;
+    else normal++;
+
+    let urgentClass = left <= 5 ? "urgent" : "";
+
     table.innerHTML += `
-      <tr>
+      <tr class="fade-scroll ${urgentClass}">
         <td>${d.name}</td>
         <td>${d.tag}</td>
         <td>${d.agency}</td>
@@ -311,7 +322,27 @@ function render() {
       </tr>
     `;
   });
+
+  readyCount.innerText = ready;
+  nearCount.innerText = near;
+  normalCount.innerText = normal;
+
+  setTimeout(handleScrollAnimation, 100);
 }
+
+/* SCROLL ANIMATION */
+function handleScrollAnimation() {
+  document.querySelectorAll(".fade-scroll").forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight - 50) {
+      el.classList.add("show");
+    } else {
+      el.classList.remove("show");
+    }
+  });
+}
+
+window.addEventListener("scroll", handleScrollAnimation);
 
 loadData();
 </script>
