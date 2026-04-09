@@ -6,34 +6,98 @@
 <title>VA Dashboard Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-body { font-family: Arial; background:#0f172a; color:#fff; margin:0; }
-.container { max-width:1200px; margin:auto; padding:20px; }
-h1 { text-align:center; }
-.card { background:#1e293b; padding:15px; border-radius:12px; margin-bottom:15px; }
-input, select, button { padding:10px; margin:5px 0; width:100%; border-radius:8px; border:none; }
-button { background:#38bdf8; cursor:pointer; }
-table { width:100%; border-collapse: collapse; }
-th, td { padding:10px; text-align:center; }
-th { background:#38bdf8; }
-tr:nth-child(even) { background:#1e293b; }
-.badge { padding:5px 10px; border-radius:6px; }
-.red { background:#ef4444; }
+body {
+  font-family: Arial;
+  margin: 0;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color: #fff;
+}
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  padding: 15px;
+  border-radius: 14px;
+  margin-bottom: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+input, select, button {
+  padding: 10px;
+  margin: 5px 0;
+  width: 100%;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+}
+button {
+  background: linear-gradient(90deg,#38bdf8,#6366f1);
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+  font-weight: bold;
+}
+button:hover {
+  transform: scale(1.02);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 10px;
+  text-align: center;
+}
+th {
+  background: #38bdf8;
+  color: black;
+}
+tr:nth-child(even) {
+  background: rgba(255,255,255,0.05);
+}
+.badge {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-weight: bold;
+}
 .green { background:#22c55e; }
-.gray { background:#64748b; }
 .orange { background:#f59e0b; }
-.flex { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.filters { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.alert { background:#ef4444; padding:10px; border-radius:8px; margin-bottom:10px; }
+.gray { background:#64748b; }
+.red { background:#ef4444; }
+.flex {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 10px;
+  text-align: center;
+}
+.alert {
+  background: #ef4444;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
 </style>
 </head>
 <body>
 <div class="container">
+
 <h1>VA Dashboard Pro 🚀</h1>
 
 <div class="card stats">
 <div>Total VAs: <span id="total">0</span></div>
-<div>Near 90 Days: <span id="near">0</span></div>
+<div>Near 45 Days: <span id="near">0</span></div>
 <div>Ready for WFH: <span id="ready">0</span></div>
 <div>Urgent (≤3 days): <span id="urgent">0</span></div>
 </div>
@@ -65,7 +129,7 @@ tr:nth-child(even) { background:#1e293b; }
 </div>
 
 <div class="card">
-<div class="filters">
+<div class="flex">
 <select id="filterTL" onchange="render()">
 <option value="">Filter by TL</option>
 <option>Martin</option>
@@ -88,124 +152,164 @@ tr:nth-child(even) { background:#1e293b; }
 <table>
 <thead>
 <tr>
-<th>Name</th><th>Tag</th><th>Agency</th><th>TL</th><th>Start</th><th>WFH</th><th>Status</th><th>Days Left</th><th>Actions</th>
+<th>Name</th><th>Tag</th><th>Agency</th><th>TL</th><th>Start</th><th>WFH (45th Day)</th><th>Status</th><th>Days Left</th><th>Actions</th>
 </tr>
 </thead>
 <tbody id="table"></tbody>
 </table>
 </div>
+
 </div>
 
 <script>
 let data = JSON.parse(localStorage.getItem('vaDataPro')) || [];
 
-function calc90(date) {
- let d = new Date(date);
- d.setDate(d.getDate()+90);
- return d;
+function calc45(date) {
+  let d = new Date(date);
+  d.setDate(d.getDate() + 45);
+  return d;
 }
 
 function daysLeft(start) {
- let wfh = calc90(start);
- let today = new Date();
- return Math.ceil((wfh - today)/(1000*60*60*24));
+  let wfh = calc45(start);
+  let today = new Date();
+  return Math.ceil((wfh - today) / (1000 * 60 * 60 * 24));
 }
 
 function getStatus(start) {
- let diff = (new Date() - new Date(start))/(1000*60*60*24);
- if(diff >= 90) return 'ready';
- if(diff >= 80) return 'near';
- return 'normal';
+  let diff = (new Date() - new Date(start)) / (1000 * 60 * 60 * 24);
+  if (diff >= 45) return 'ready';
+  if (diff >= 35) return 'near';
+  return 'normal';
 }
 
-function addVA(){
- let obj = {
- name: vaName.value,
- tag: vaTag.value,
- agency: agency.value,
- tl: tl.value,
- start: startDate.value
- };
- if(!obj.name || !obj.start || !obj.tl || !obj.tag) return alert('Complete fields');
- data.push(obj);
- save(); render(); clear();
+function addVA() {
+  let obj = {
+    name: vaName.value,
+    tag: vaTag.value,
+    agency: agency.value,
+    tl: tl.value,
+    start: startDate.value
+  };
+
+  if (!obj.name || !obj.start || !obj.tl || !obj.tag) return alert('Complete fields');
+
+  data.push(obj);
+  save();
+  render();
+  clear();
 }
 
-function render(){
- let table = document.getElementById('table');
- let alertBox = document.getElementById('alertBox');
- table.innerHTML=''; alertBox.innerHTML='';
+function render() {
+  let table = document.getElementById('table');
+  let alertBox = document.getElementById('alertBox');
 
- let total=0, near=0, ready=0, urgent=0;
+  table.innerHTML = '';
+  alertBox.innerHTML = '';
 
- let fTL = filterTL.value.toLowerCase();
- let fTag = filterTag.value.toLowerCase();
- let search = searchName.value.toLowerCase();
+  let total = 0, near = 0, ready = 0, urgent = 0;
 
- // SORT by urgency (days left ascending)
- let sorted = [...data].sort((a,b)=> daysLeft(a.start) - daysLeft(b.start));
+  let fTL = filterTL.value.toLowerCase();
+  let fTag = filterTag.value.toLowerCase();
+  let search = searchName.value.toLowerCase();
 
- sorted.forEach((d,i)=>{
- if(fTL && d.tl.toLowerCase() !== fTL) return;
- if(fTag && d.tag.toLowerCase() !== fTag) return;
- if(search && !d.name.toLowerCase().includes(search)) return;
+  let sorted = [...data].sort((a, b) => daysLeft(a.start) - daysLeft(b.start));
 
- let wfhDate = calc90(d.start);
- let left = daysLeft(d.start);
- let status = getStatus(d.start);
+  sorted.forEach(d => {
+    if (fTL && d.tl.toLowerCase() !== fTL) return;
+    if (fTag && d.tag.toLowerCase() !== fTag) return;
+    if (search && !d.name.toLowerCase().includes(search)) return;
 
- if(status==='near') near++;
- if(status==='ready') ready++;
- if(left <=3 && left>=0) {
- urgent++;
- alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} (${d.tl}) will reach 90 days in ${left} day(s)</div>`;
- }
- total++;
+    let wfhDate = calc45(d.start);
+    let left = daysLeft(d.start);
 
- let badgeClass = status==='ready'?'green':status==='near'?'orange':'gray';
- let badgeText = status==='ready'?'Ready':status==='near'?'Near':'Normal';
+    let diff = (new Date() - new Date(d.start)) / (1000 * 60 * 60 * 24);
 
- table.innerHTML += `
- <tr>
- <td>${d.name}</td>
- <td>${d.tag}</td>
- <td>${d.agency}</td>
- <td>${d.tl}</td>
- <td>${d.start}</td>
- <td>${wfhDate.toISOString().split('T')[0]}</td>
- <td><span class="badge ${badgeClass}">${badgeText}</span></td>
- <td>${left}</td>
- <td>
- <button onclick="editVA(${data.indexOf(d)})">Edit</button>
- <button onclick="deleteVA(${data.indexOf(d)})">Delete</button>
- </td>
- </tr>`;
- });
+    if (diff >= 35) near++;
+    if (diff >= 45) ready++;
 
- totalSpan.innerText = total;
- nearSpan.innerText = near;
- readySpan.innerText = ready;
- urgentSpan.innerText = urgent;
+    if (left <= 3 && left >= 0) {
+      urgent++;
+      alertBox.innerHTML += `<div class=\"alert\">⚠️ ${d.name} (${d.tl}) will reach 45 days in ${left} day(s)</div>`;
+    }
+
+    total++;
+
+    let badgeClass = diff >= 45 ? 'green' : diff >= 35 ? 'orange' : 'gray';
+    let badgeText = diff >= 45 ? 'Ready' : diff >= 35 ? 'Near' : 'Normal';
+
+    table.innerHTML += `
+      <tr>
+        <td>${d.name}</td>
+        <td>${d.tag}</td>
+        <td>${d.agency}</td>
+        <td>${d.tl}</td>
+        <td>${d.start}</td>
+        <td>${wfhDate.toISOString().split('T')[0]}</td>
+        <td><span class=\"badge ${badgeClass}\">${badgeText}</span></td>
+        <td>${left}</td>
+        <td>
+          <button onclick=\"editVA(${data.indexOf(d)})\">Edit</button>
+          <button onclick=\"deleteVA(${data.indexOf(d)})\">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('total').innerText = total;
+  document.getElementById('near').innerText = near;
+  document.getElementById('ready').innerText = ready;
+  document.getElementById('urgent').innerText = urgent;
 }
 
-function deleteVA(i){ if(confirm('Delete?')){ data.splice(i,1); save(); render(); }}
+function deleteVA(i) {
+  if (confirm('Delete?')) {
+    data.splice(i, 1);
+    save();
+    render();
+  }
+}
 
-function editVA(i){ let d=data[i]; vaName.value=d.name; vaTag.value=d.tag; agency.value=d.agency; tl.value=d.tl; startDate.value=d.start; deleteVA(i);} 
+function editVA(i) {
+  let d = data[i];
+  vaName.value = d.name;
+  vaTag.value = d.tag;
+  agency.value = d.agency;
+  tl.value = d.tl;
+  startDate.value = d.start;
+  deleteVA(i);
+}
 
-function save(){ localStorage.setItem('vaDataPro', JSON.stringify(data)); }
-function clear(){ vaName.value=''; vaTag.value=''; agency.value=''; tl.value=''; startDate.value=''; }
+function save() {
+  localStorage.setItem('vaDataPro', JSON.stringify(data));
+}
 
-function exportExcel(){
- let exportData = data.map(d=>({
- Name:d.name, Tag:d.tag, Agency:d.agency, TL:d.tl, Start:d.start, WFH:calc90(d.start).toISOString().split('T')[0]
- }));
- let ws = XLSX.utils.json_to_sheet(exportData);
- let wb = XLSX.utils.book_new();
- XLSX.utils.book_append_sheet(wb, ws, "VAs");
- XLSX.writeFile(wb, "VA_Dashboard.xlsx");
+function clear() {
+  vaName.value = '';
+  vaTag.value = '';
+  agency.value = '';
+  tl.value = '';
+  startDate.value = '';
+}
+
+function exportExcel() {
+  let exportData = data.map(d => ({
+    Name: d.name,
+    Tag: d.tag,
+    Agency: d.agency,
+    TL: d.tl,
+    Start: d.start,
+    WFH: calc45(d.start).toISOString().split('T')[0]
+  }));
+
+  let ws = XLSX.utils.json_to_sheet(exportData);
+  let wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "VAs");
+  XLSX.writeFile(wb, "VA_Dashboard.xlsx");
 }
 
 render();
 </script>
+
 </body>
 </html>
