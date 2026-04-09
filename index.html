@@ -6,7 +6,6 @@
 <title>VA Dashboard Pro</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
 body {
@@ -16,45 +15,32 @@ body {
   color: #fff;
 }
 .container { max-width: 1200px; margin: auto; padding: 20px; }
-h1 { text-align: center; }
 
 .card {
   background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
   padding: 15px;
-  border-radius: 14px;
-  margin-bottom: 15px;
+  border-radius: 12px;
+  margin-bottom: 10px;
 }
 
 input, select, button {
   padding: 10px;
-  margin: 5px 0;
   width: 100%;
-  border-radius: 10px;
+  margin: 5px 0;
+  border-radius: 8px;
   border: none;
 }
 
 button {
-  background: linear-gradient(90deg,#38bdf8,#6366f1);
-  color: white;
-  cursor: pointer;
+  background: #38bdf8;
   font-weight: bold;
+  cursor: pointer;
 }
 
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px; text-align: center; }
 th { background: #38bdf8; color: black; }
 tr:nth-child(even) { background: rgba(255,255,255,0.05); }
-
-.badge { padding: 5px 10px; border-radius: 8px; }
-.green { background:#22c55e; }
-.orange { background:#f59e0b; }
-.gray { background:#64748b; }
-
-.flex { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; text-align: center; }
-
-.alert { background: #ef4444; padding: 10px; border-radius: 10px; margin-bottom: 5px; }
 </style>
 </head>
 
@@ -63,17 +49,7 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 
 <h1>VA Dashboard Pro 🚀</h1>
 
-<div class="card stats">
-<div>Total VAs: <span id="total">0</span></div>
-<div>Near 45 Days: <span id="near">0</span></div>
-<div>Ready: <span id="ready">0</span></div>
-<div>Urgent: <span id="urgent">0</span></div>
-</div>
-
-<div id="alertBox"></div>
-
 <div class="card">
-<div class="flex">
 <input id="vaName" placeholder="VA Name">
 
 <select id="vaTag">
@@ -95,39 +71,20 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 </select>
 
 <input type="date" id="startDate">
-</div>
 
 <button onclick="addVA()">Save VA</button>
-<button onclick="exportExcel()">Export</button>
-</div>
-
-<div class="card">
-<div class="flex">
-<select id="filterTL" onchange="render()">
-<option value="">Filter TL</option>
-<option>Martin</option>
-<option>RJ</option>
-<option>Ed</option>
-<option>Rezyl</option>
-<option>Karla</option>
-</select>
-
-<select id="filterTag" onchange="render()">
-<option value="">Filter Tag</option>
-<option>Combo VA</option>
-<option>General VA</option>
-<option>Executive Assistant</option>
-</select>
-
-<input id="searchName" placeholder="Search" onkeyup="render()">
-</div>
 </div>
 
 <div class="card">
 <table>
 <thead>
 <tr>
-<th>Name</th><th>Tag</th><th>Agency</th><th>TL</th><th>Start</th><th>WFH</th><th>Status</th><th>Days Left</th><th>Actions</th>
+<th>Name</th>
+<th>Tag</th>
+<th>Agency</th>
+<th>TL</th>
+<th>Start</th>
+<th>Actions</th>
 </tr>
 </thead>
 <tbody id="table"></tbody>
@@ -139,82 +96,61 @@ tr:nth-child(even) { background: rgba(255,255,255,0.05); }
 <script>
 /* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://rapwcdljrqvurrukumcj.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhcHdjZGxqcnF2dXJydWt1bWNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDYwMzUsImV4cCI6MjA5MTMyMjAzNX0.C7XzwOeluKknt6Gx48eI9890uG-XgekLBs_cc7vjojg";
+const SUPABASE_KEY = "YOUR_ANON_KEY_HERE";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* ================= DOM ELEMENTS ================= */
-const vaName = document.getElementById("vaName");
-const vaTag = document.getElementById("vaTag");
-const agency = document.getElementById("agency");
-const tl = document.getElementById("tl");
-const startDate = document.getElementById("startDate");
-
-const filterTL = document.getElementById("filterTL");
-const filterTag = document.getElementById("filterTag");
-const searchName = document.getElementById("searchName");
-
-const table = document.getElementById("table");
-const alertBox = document.getElementById("alertBox");
-
-const totalEl = document.getElementById("total");
-const nearEl = document.getElementById("near");
-const readyEl = document.getElementById("ready");
-const urgentEl = document.getElementById("urgent");
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ================= STATE ================= */
 let data = [];
 let editingId = null;
 
-/* ================= HELPERS ================= */
-function calc45(date) {
-  let d = new Date(date);
-  d.setDate(d.getDate() + 45);
-  return d;
-}
-
-function daysLeft(start) {
-  return Math.ceil((calc45(start) - new Date()) / (1000 * 60 * 60 * 24));
-}
-
 /* ================= LOAD ================= */
 async function loadData() {
-  const { data: result } = await supabase
+  const { data: result, error } = await supabaseClient
     .from('vas')
     .select('*')
     .order('id', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
 
   data = result || [];
   render();
 }
 
-/* ================= ADD / UPDATE ================= */
+/* ================= SAVE ================= */
 async function addVA() {
-  if (!vaName.value || !startDate.value || !tl.value || !vaTag.value)
-    return alert("Complete fields");
+  const name = document.getElementById("vaName").value;
+  const tag = document.getElementById("vaTag").value;
+  const agency = document.getElementById("agency").value;
+  const tl = document.getElementById("tl").value;
+  const start = document.getElementById("startDate").value;
 
-  const payload = {
-    name: vaName.value.trim(),
-    tag: vaTag.value,
-    agency: agency.value.trim(),
-    tl: tl.value,
-    start: startDate.value
-  };
+  if (!name || !tag || !agency || !tl || !start) {
+    alert("Complete all fields");
+    return;
+  }
 
-  console.log("Saving:", payload);
+  const payload = { name, tag, agency, tl, start };
 
   let result;
 
   if (editingId) {
-    result = await supabase.from('vas').update(payload).eq('id', editingId);
+    result = await supabaseClient
+      .from('vas')
+      .update(payload)
+      .eq('id', editingId);
   } else {
-    result = await supabase.from('vas').insert([payload]);
+    result = await supabaseClient
+      .from('vas')
+      .insert([payload]);
   }
 
-  console.log("Supabase result:", result);
-
   if (result.error) {
-    alert("Error: " + result.error.message);
+    alert(result.error.message);
     return;
   }
 
@@ -224,67 +160,39 @@ async function addVA() {
 
 /* ================= DELETE ================= */
 async function deleteVA(id) {
-  if (!confirm("Delete?")) return;
-
-  await supabase.from('vas').delete().eq('id', id);
+  await supabaseClient.from('vas').delete().eq('id', id);
   loadData();
 }
 
 /* ================= EDIT ================= */
 function editVA(id) {
-  const d = data.find(v => v.id === id);
+  const v = data.find(x => x.id === id);
 
-  vaName.value = d.name;
-  vaTag.value = d.tag;
-  agency.value = d.agency;
-  tl.value = d.tl;
-  startDate.value = d.start;
+  document.getElementById("vaName").value = v.name;
+  document.getElementById("vaTag").value = v.tag;
+  document.getElementById("agency").value = v.agency;
+  document.getElementById("tl").value = v.tl;
+  document.getElementById("startDate").value = v.start;
 
   editingId = id;
 }
 
 /* ================= CLEAR ================= */
 function clear() {
-  vaName.value = "";
-  vaTag.value = "";
-  agency.value = "";
-  tl.value = "";
-  startDate.value = "";
+  document.getElementById("vaName").value = "";
+  document.getElementById("vaTag").value = "";
+  document.getElementById("agency").value = "";
+  document.getElementById("tl").value = "";
+  document.getElementById("startDate").value = "";
+  editingId = null;
 }
 
 /* ================= RENDER ================= */
 function render() {
-  let total = 0, near = 0, ready = 0, urgent = 0;
-
-  let fTL = filterTL.value.toLowerCase();
-  let fTag = filterTag.value.toLowerCase();
-  let search = searchName.value.toLowerCase();
-
+  const table = document.getElementById("table");
   table.innerHTML = "";
-  alertBox.innerHTML = "";
 
   data.forEach(d => {
-
-    if (fTL && d.tl.toLowerCase() !== fTL) return;
-    if (fTag && d.tag.toLowerCase() !== fTag) return;
-    if (search && !d.name.toLowerCase().includes(search)) return;
-
-    let left = daysLeft(d.start);
-    let diff = (new Date() - new Date(d.start)) / 86400000;
-
-    if (diff >= 35) near++;
-    if (diff >= 45) ready++;
-
-    if (left <= 3 && left >= 0) {
-      urgent++;
-      alertBox.innerHTML += `<div class="alert">⚠️ ${d.name} - ${left} days left</div>`;
-    }
-
-    total++;
-
-    let badge = diff >= 45 ? "green" : diff >= 35 ? "orange" : "gray";
-    let text = diff >= 45 ? "Ready" : diff >= 35 ? "Near" : "Normal";
-
     table.innerHTML += `
       <tr>
         <td>${d.name}</td>
@@ -292,9 +200,6 @@ function render() {
         <td>${d.agency}</td>
         <td>${d.tl}</td>
         <td>${d.start}</td>
-        <td>${calc45(d.start).toISOString().split("T")[0]}</td>
-        <td><span class="badge ${badge}">${text}</span></td>
-        <td>${left}</td>
         <td>
           <button onclick="editVA(${d.id})">Edit</button>
           <button onclick="deleteVA(${d.id})">Delete</button>
@@ -302,18 +207,13 @@ function render() {
       </tr>
     `;
   });
-
-  totalEl.textContent = total;
-  nearEl.textContent = near;
-  readyEl.textContent = ready;
-  urgentEl.textContent = urgent;
 }
 
 /* ================= INIT ================= */
 loadData();
 
 /* ================= REALTIME ================= */
-supabase
+supabaseClient
   .channel('vas')
   .on('postgres_changes',
     { event: '*', schema: 'public', table: 'vas' },
