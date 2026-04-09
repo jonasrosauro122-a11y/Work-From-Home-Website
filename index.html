@@ -145,11 +145,11 @@ async function loadData() {
 
 /* ================= SAVE ================= */
 async function addVA() {
-  const name = vaName.value;
-  const tag = vaTag.value;
-  const agency = agency.value;
-  const tl = tl.value;
-  const start = startDate.value;
+  const name = document.getElementById("vaName").value;
+  const tag = document.getElementById("vaTag").value;
+  const agency = document.getElementById("agency").value;
+  const tl = document.getElementById("tl").value;
+  const start = document.getElementById("startDate").value;
 
   if (!name || !tag || !agency || !tl || !start) {
     alert("Complete all fields");
@@ -161,9 +161,14 @@ async function addVA() {
   let result;
 
   if (editingId) {
-    result = await supabaseClient.from('vas').update(payload).eq('id', editingId);
+    result = await supabaseClient
+      .from('vas')
+      .update(payload)
+      .eq('id', editingId);
   } else {
-    result = await supabaseClient.from('vas').insert([payload]);
+    result = await supabaseClient
+      .from('vas')
+      .insert([payload]);
   }
 
   if (result.error) {
