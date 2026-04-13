@@ -3,78 +3,127 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VA Seating Plan - Full Working Version</title>
+<title>VA Floor Plan System</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
 
 <style>
-body { margin:0; font-family:Segoe UI, sans-serif; background:#0f172a; color:#fff; }
-header { padding:15px; text-align:center; font-size:22px; }
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+}
 
+/* FLOOR */
 #floor {
   position: relative;
   width: 100%;
   height: 90vh;
   background: #1e293b;
+  overflow: hidden;
 }
 
+/* STATION */
 .station {
   position: absolute;
   width: 120px;
-  height: 80px;
+  height: 85px;
   background: #334155;
   border-radius: 10px;
-  padding: 8px;
-  cursor: move;
+  padding: 6px;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.station.present { border-left: 6px solid #22c55e; }
-.station.late { border-left: 6px solid #f59e0b; }
-.station.absent { border-left: 6px solid #ef4444; }
+.station:hover {
+  transform: scale(1.05);
+}
 
-.title { font-size:12px; font-weight:bold; }
-.name { font-size:12px; margin-top:4px; }
+.title {
+  font-size: 12px;
+  font-weight: bold;
+}
 
+.name {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.time {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* DOOR */
 .door {
-  position:absolute;
-  width:120px;
-  height:60px;
-  background:#64748b;
-  text-align:center;
-  line-height:60px;
-  border-radius:8px;
+  position: absolute;
+  width: 140px;
+  height: 80px;
+  background: #64748b;
+  right: 20px;
+  top: 20px;
+  text-align: center;
+  line-height: 80px;
+  border-radius: 10px;
 }
 
-button { margin:10px; padding:8px 12px; border:none; border-radius:6px; }
-
+/* MODAL */
 .modal {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
-.modal-box { background:#1e293b; padding:20px; border-radius:10px; width:260px; }
-input, select { width:100%; margin:6px 0; padding:6px; border-radius:6px; border:none; }
+
+.modal-box {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  width: 280px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+  border-radius: 6px;
+  border: none;
+}
+
+button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  margin-top: 5px;
+  width: 100%;
+  cursor: pointer;
+}
 </style>
 </head>
+
 <body>
 
-<header>VA Seating Plan (FULL SYSTEM)</header>
-<button onclick="openModal()">+ Assign VA</button>
+<h3 style="text-align:center;padding:10px;">🪑 VA FLOOR PLAN SYSTEM</h3>
 
 <div id="floor"></div>
 
+<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-box">
-    <h3>Assign VA</h3>
-    <input id="station" placeholder="Station ID (e.g. L1)">
-    <input id="name" placeholder="VA Name">
-    <select id="status">
-      <option value="present">Present</option>
-      <option value="late">Late</option>
-      <option value="absent">Absent</option>
-    </select>
+    <h3 id="stationTitle">Station</h3>
+
+    <input id="vaName" placeholder="VA Name">
+    <input id="timeIn" type="time">
+    <input id="timeOut" type="time">
+
     <button onclick="save()">Save</button>
-    <button onclick="closeModal()">Cancel</button>
+    <button onclick="closeModal()">Close</button>
   </div>
 </div>
 
@@ -84,105 +133,115 @@ const supabase = window.supabase.createClient(
   "YOUR_SUPABASE_KEY"
 );
 
-const layoutMap = [
-  {id:'L1', x:40, y:40}, {id:'L2', x:40, y:150},
-  {id:'L3', x:180, y:40}, {id:'L4', x:180, y:150},
+/* YOUR FLOOR PLAN BASED ON DRAWING */
+const layout = [
+  // TOP ROW
+  {id:"A1", x:40, y:40},
+  {id:"A2", x:180, y:40},
+  {id:"A3", x:320, y:40},
+  {id:"A4", x:460, y:40},
+  {id:"A5", x:600, y:40},
+  {id:"A6", x:740, y:40},
 
-  {id:'C1', x:350, y:40}, {id:'C2', x:350, y:150},
-  {id:'C3', x:500, y:40}, {id:'C4', x:500, y:150},
+  // MIDDLE ROW
+  {id:"B1", x:40, y:180},
+  {id:"B2", x:180, y:180},
+  {id:"B3", x:320, y:180},
+  {id:"B4", x:460, y:180},
+  {id:"B5", x:600, y:180},
+  {id:"B6", x:740, y:180},
 
-  {id:'R1', x:700, y:40}, {id:'R2', x:700, y:150},
-  {id:'R3', x:850, y:40}, {id:'R4', x:850, y:150},
-
-  {id:'B1', x:700, y:320}, {id:'B2', x:850, y:320},
-  {id:'B3', x:700, y:420}, {id:'B4', x:850, y:420}
+  // LOWER ROW
+  {id:"C1", x:40, y:320},
+  {id:"C2", x:180, y:320},
+  {id:"C3", x:320, y:320},
+  {id:"C4", x:460, y:320},
+  {id:"C5", x:600, y:320},
+  {id:"C6", x:740, y:320}
 ];
 
-async function load(){
-  const { data } = await supabase.from('seats').select('*');
-  const floor = document.getElementById('floor');
-  floor.innerHTML='';
+let selectedStation = null;
 
-  const door = document.createElement('div');
-  door.className='door';
-  door.style.left='900px';
-  door.style.top='40px';
-  door.innerText='DOOR';
+/* LOAD FLOOR */
+async function load() {
+  const { data } = await supabase.from("floor").select("*");
+
+  const floor = document.getElementById("floor");
+  floor.innerHTML = "";
+
+  /* DOOR */
+  const door = document.createElement("div");
+  door.className = "door";
+  door.innerText = "DOOR";
   floor.appendChild(door);
 
-  layoutMap.forEach(pos=>{
-    const s = data.find(d=>d.station===pos.id) || {};
+  layout.forEach(pos => {
 
-    const div=document.createElement('div');
-    div.className='station ' + (s.status || '');
-    div.style.left=pos.x+'px';
-    div.style.top=pos.y+'px';
-    div.setAttribute('data-id', pos.id);
+    const found = data?.find(d => d.station === pos.id);
 
-    const x = s.pos_x || 0;
-    const y = s.pos_y || 0;
-    div.style.transform = `translate(${x}px, ${y}px)`;
-    div.setAttribute('data-x', x);
-    div.setAttribute('data-y', y);
+    const div = document.createElement("div");
+    div.className = "station";
+    div.style.left = pos.x + "px";
+    div.style.top = pos.y + "px";
 
-    div.innerHTML=`
-      <div class='title'>${pos.id}</div>
-      <div class='name'>${s.name || 'Empty'}</div>
+    div.innerHTML = `
+      <div class="title">${pos.id}</div>
+      <div class="name">${found?.name || "Empty"}</div>
+      <div class="time">
+        ${found?.time_in || "--"} - ${found?.time_out || "--"}
+      </div>
     `;
 
-    div.onclick=()=>edit(pos.id);
-
-    interact(div).draggable({
-      listeners:{
-        move(event){
-          let x=(parseFloat(div.getAttribute('data-x'))||0)+event.dx;
-          let y=(parseFloat(div.getAttribute('data-y'))||0)+event.dy;
-          div.style.transform=`translate(${x}px, ${y}px)`;
-          div.setAttribute('data-x',x);
-          div.setAttribute('data-y',y);
-        },
-        end(){
-          const x=div.getAttribute('data-x');
-          const y=div.getAttribute('data-y');
-          const station=div.getAttribute('data-id');
-
-          supabase.from('seats')
-            .update({pos_x:x,pos_y:y})
-            .eq('station',station);
-        }
-      }
-    });
+    div.onclick = () => openModal(pos.id, found);
 
     floor.appendChild(div);
   });
 }
 
-function openModal(){ document.getElementById('modal').style.display='flex'; }
-function closeModal(){ document.getElementById('modal').style.display='none'; }
+/* OPEN MODAL */
+function openModal(id, data) {
+  selectedStation = id;
 
-async function save(){
-  const station=document.getElementById('station').value;
-  const name=document.getElementById('name').value;
-  const status=document.getElementById('status').value;
+  document.getElementById("stationTitle").innerText = "Station " + id;
 
-  const { data } = await supabase.from('seats').select('*').eq('station',station);
+  vaName.value = data?.name || "";
+  timeIn.value = data?.time_in || "";
+  timeOut.value = data?.time_out || "";
 
-  if(data.length>0){
-    await supabase.from('seats').update({name,status}).eq('station',station);
+  document.getElementById("modal").style.display = "flex";
+}
+
+/* CLOSE */
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+/* SAVE */
+async function save() {
+
+  const payload = {
+    station: selectedStation,
+    name: vaName.value,
+    time_in: timeIn.value,
+    time_out: timeOut.value
+  };
+
+  const { data } = await supabase
+    .from("floor")
+    .select("*")
+    .eq("station", selectedStation);
+
+  if (data.length > 0) {
+    await supabase.from("floor")
+      .update(payload)
+      .eq("station", selectedStation);
   } else {
-    await supabase.from('seats').insert([{station,name,status}]);
+    await supabase.from("floor")
+      .insert([payload]);
   }
 
   closeModal();
   load();
-}
-
-async function edit(station){
-  const { data } = await supabase.from('seats').select('*').eq('station', station).single();
-  document.getElementById('station').value=station;
-  document.getElementById('name').value=data?.name||'';
-  document.getElementById('status').value=data?.status||'present';
-  openModal();
 }
 
 load();
