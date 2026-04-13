@@ -1,251 +1,160 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VA Floor Plan System</title>
+import React, { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #0f172a;
-  color: white;
-}
-
-/* FLOOR */
-#floor {
-  position: relative;
-  width: 100%;
-  height: 90vh;
-  background: #1e293b;
-  overflow: hidden;
-}
-
-/* STATION */
-.station {
-  position: absolute;
-  width: 120px;
-  height: 85px;
-  background: #334155;
-  border-radius: 10px;
-  padding: 6px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.station:hover {
-  transform: scale(1.05);
-}
-
-.title {
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.name {
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.time {
-  font-size: 10px;
-  opacity: 0.8;
-}
-
-/* DOOR */
-.door {
-  position: absolute;
-  width: 140px;
-  height: 80px;
-  background: #64748b;
-  right: 20px;
-  top: 20px;
-  text-align: center;
-  line-height: 80px;
-  border-radius: 10px;
-}
-
-/* MODAL */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-box {
-  background: #1e293b;
-  padding: 20px;
-  border-radius: 12px;
-  width: 280px;
-}
-
-input {
-  width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-  border-radius: 6px;
-  border: none;
-}
-
-button {
-  padding: 8px;
-  border: none;
-  border-radius: 6px;
-  margin-top: 5px;
-  width: 100%;
-  cursor: pointer;
-}
-</style>
-</head>
-
-<body>
-
-<h3 style="text-align:center;padding:10px;">🪑 VA FLOOR PLAN SYSTEM</h3>
-
-<div id="floor"></div>
-
-<!-- MODAL -->
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <h3 id="stationTitle">Station</h3>
-
-    <input id="vaName" placeholder="VA Name">
-    <input id="timeIn" type="time">
-    <input id="timeOut" type="time">
-
-    <button onclick="save()">Save</button>
-    <button onclick="closeModal()">Close</button>
-  </div>
-</div>
-
-<script>
-const supabase = window.supabase.createClient(
-  "YOUR_SUPABASE_URL",
-  "YOUR_SUPABASE_KEY"
+const supabase = createClient(
+  "https://YOUR_PROJECT.supabase.co",
+  "YOUR_PUBLIC_ANON_KEY"
 );
 
-/* YOUR FLOOR PLAN BASED ON DRAWING */
+// -----------------------------
+// 🧭 EXACT FLOOR LAYOUT (based on sketch)
+// -----------------------------
 const layout = [
-  // TOP ROW
-  {id:"A1", x:40, y:40},
-  {id:"A2", x:180, y:40},
-  {id:"A3", x:320, y:40},
-  {id:"A4", x:460, y:40},
-  {id:"A5", x:600, y:40},
-  {id:"A6", x:740, y:40},
+  // LEFT COLUMN (2 vertical stacks)
+  { id: 1, x: 40, y: 40 },
+  { id: 2, x: 40, y: 140 },
+  { id: 3, x: 40, y: 240 },
 
-  // MIDDLE ROW
-  {id:"B1", x:40, y:180},
-  {id:"B2", x:180, y:180},
-  {id:"B3", x:320, y:180},
-  {id:"B4", x:460, y:180},
-  {id:"B5", x:600, y:180},
-  {id:"B6", x:740, y:180},
+  { id: 4, x: 140, y: 40 },
+  { id: 5, x: 140, y: 140 },
+  { id: 6, x: 140, y: 240 },
 
-  // LOWER ROW
-  {id:"C1", x:40, y:320},
-  {id:"C2", x:180, y:320},
-  {id:"C3", x:320, y:320},
-  {id:"C4", x:460, y:320},
-  {id:"C5", x:600, y:320},
-  {id:"C6", x:740, y:320}
+  // CENTER BLOCK (2 facing rows)
+  { id: 7, x: 320, y: 40 },
+  { id: 8, x: 420, y: 40 },
+  { id: 9, x: 520, y: 40 },
+
+  { id: 10, x: 320, y: 200 },
+  { id: 11, x: 420, y: 200 },
+  { id: 12, x: 520, y: 200 },
+
+  // MIDDLE AISLE (vertical narrow stations)
+  { id: 13, x: 620, y: 80 },
+  { id: 14, x: 620, y: 180 },
+
+  // RIGHT CLUSTER (like sketch grouping)
+  { id: 15, x: 760, y: 60 },
+  { id: 16, x: 880, y: 60 },
+
+  { id: 17, x: 760, y: 160 },
+  { id: 18, x: 880, y: 160 },
+
+  { id: 19, x: 760, y: 260 },
+  { id: 20, x: 880, y: 260 }
 ];
 
-let selectedStation = null;
+// -----------------------------
+// MAIN COMPONENT
+// -----------------------------
+export default function FloorPlanDashboard() {
+  const [stations, setStations] = useState([]);
+  const [search, setSearch] = useState("");
 
-/* LOAD FLOOR */
-async function load() {
-  const { data } = await supabase.from("floor").select("*");
+  useEffect(() => {
+    fetchStations();
+  }, []);
 
-  const floor = document.getElementById("floor");
-  floor.innerHTML = "";
+  const fetchStations = async () => {
+    const { data } = await supabase.from("va_attendance").select("*");
 
-  /* DOOR */
-  const door = document.createElement("div");
-  door.className = "door";
-  door.innerText = "DOOR";
-  floor.appendChild(door);
-
-  layout.forEach(pos => {
-
-    const found = data?.find(d => d.station === pos.id);
-
-    const div = document.createElement("div");
-    div.className = "station";
-    div.style.left = pos.x + "px";
-    div.style.top = pos.y + "px";
-
-    div.innerHTML = `
-      <div class="title">${pos.id}</div>
-      <div class="name">${found?.name || "Empty"}</div>
-      <div class="time">
-        ${found?.time_in || "--"} - ${found?.time_out || "--"}
-      </div>
-    `;
-
-    div.onclick = () => openModal(pos.id, found);
-
-    floor.appendChild(div);
-  });
-}
-
-/* OPEN MODAL */
-function openModal(id, data) {
-  selectedStation = id;
-
-  document.getElementById("stationTitle").innerText = "Station " + id;
-
-  vaName.value = data?.name || "";
-  timeIn.value = data?.time_in || "";
-  timeOut.value = data?.time_out || "";
-
-  document.getElementById("modal").style.display = "flex";
-}
-
-/* CLOSE */
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
-/* SAVE */
-async function save() {
-
-  const payload = {
-    station: selectedStation,
-    name: vaName.value,
-    time_in: timeIn.value,
-    time_out: timeOut.value
+    if (data) {
+      // merge layout positions
+      const merged = layout.map((pos) => {
+        const match = data.find((d) => d.station_id === pos.id);
+        return {
+          ...pos,
+          ...match
+        };
+      });
+      setStations(merged);
+    }
   };
 
-  const { data } = await supabase
-    .from("floor")
-    .select("*")
-    .eq("station", selectedStation);
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime-attendance")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "va_attendance" },
+        fetchStations
+      )
+      .subscribe();
 
-  if (data.length > 0) {
-    await supabase.from("floor")
-      .update(payload)
-      .eq("station", selectedStation);
-  } else {
-    await supabase.from("floor")
-      .insert([payload]);
-  }
+    return () => supabase.removeChannel(channel);
+  }, []);
 
-  closeModal();
-  load();
+  const filtered = stations.filter((s) =>
+    s.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-200 p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">Office Floor Monitoring</h1>
+        <input
+          placeholder="Search VA..."
+          className="border px-3 py-2 rounded-lg"
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* FLOOR */}
+      <div className="relative w-full max-w-[1050px] h-[420px] bg-gray-50 border-4 border-gray-300 rounded-2xl shadow-inner mx-auto">
+        {/* AISLES */}
+        <div className="absolute left-[260px] top-0 w-[40px] h-full bg-gray-200 opacity-50" />
+        <div className="absolute left-[600px] top-0 w-[40px] h-full bg-gray-200 opacity-50" />
+
+        {/* DOOR */}
+        <div className="absolute right-4 top-2 text-xs text-gray-500">DOOR</div>
+
+        {filtered.map((station) => (
+          <Station key={station.id} data={station} highlight={search} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-load();
-</script>
+// -----------------------------
+// STATION COMPONENT (REALISTIC)
+// -----------------------------
+function Station({ data, highlight }) {
+  const statusColor = {
+    present: "bg-green-600",
+    absent: "bg-red-600",
+    break: "bg-yellow-500"
+  };
 
-</body>
-</html>
+  const isHighlighted = highlight &&
+    data.name?.toLowerCase().includes(highlight.toLowerCase());
+
+  return (
+    <div
+      className={`absolute w-[110px] h-[75px] rounded-xl shadow-lg border border-gray-300 text-white p-2 transition-all ${statusColor[data.status] || "bg-gray-400"} ${
+        isHighlighted ? "scale-110 ring-4 ring-blue-400" : ""
+      }`}
+      style={{ top: data.y, left: data.x }}
+    >
+      <div className="text-[11px] font-semibold truncate">
+        {data.name || "Unassigned"}
+      </div>
+      <div className="text-[10px] capitalize">{data.status || "N/A"}</div>
+      <div className="text-[9px]">{data.time_in && `In: ${data.time_in}`}</div>
+      <div className="text-[9px]">{data.time_out && `Out: ${data.time_out}`}</div>
+    </div>
+  );
+}
+
+/*
+UPDATED DATABASE STRUCTURE
+
+Table: va_attendance
+
+Columns:
+- id
+- station_id (IMPORTANT)
+- name
+- status
+- time_in
+- time_out
+*/
