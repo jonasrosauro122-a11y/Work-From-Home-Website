@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VA Seating Plan - Full Working Version</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+<style>
+body { margin:0; font-family:Segoe UI, sans-serif; background:#0f172a; color:#fff; }
+header { padding:15px; text-align:center; font-size:22px; }
+
+#floor {
+  position: relative;
+  width: 100%;
+  height: 90vh;
+  background: #1e293b;
+}
+
+.station {
+  position: absolute;
+  width: 120px;
+  height: 80px;
+  background: #334155;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: move;
+}
+
+.station.present { border-left: 6px solid #22c55e; }
+.station.late { border-left: 6px solid #f59e0b; }
+.station.absent { border-left: 6px solid #ef4444; }
+
+.title { font-size:12px; font-weight:bold; }
+.name { font-size:12px; margin-top:4px; }
+
+.door {
+  position:absolute;
+  width:120px;
+  height:60px;
+  background:#64748b;
+  text-align:center;
+  line-height:60px;
+  border-radius:8px;
+}
+
+button { margin:10px; padding:8px 12px; border:none; border-radius:6px; }
+
+.modal {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center;
+}
+.modal-box { background:#1e293b; padding:20px; border-radius:10px; width:260px; }
+input, select { width:100%; margin:6px 0; padding:6px; border-radius:6px; border:none; }
+</style>
+</head>
+<body>
+
+<header>VA Seating Plan (FULL SYSTEM)</header>
+<button onclick="openModal()">+ Assign VA</button>
+
+<div id="floor"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3>Assign VA</h3>
+    <input id="station" placeholder="Station ID (e.g. L1)">
+    <input id="name" placeholder="VA Name">
+    <select id="status">
+      <option value="present">Present</option>
+      <option value="late">Late</option>
+      <option value="absent">Absent</option>
+    </select>
+    <button onclick="save()">Save</button>
+    <button onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+const supabase = window.supabase.createClient(
+  "YOUR_SUPABASE_URL",
+  "YOUR_SUPABASE_KEY"
+);
+
+const layoutMap = [
+  {id:'L1', x:40, y:40}, {id:'L2', x:40, y:150},
+  {id:'L3', x:180, y:40}, {id:'L4', x:180, y:150},
+
+  {id:'C1', x:350, y:40}, {id:'C2', x:350, y:150},
+  {id:'C3', x:500, y:40}, {id:'C4', x:500, y:150},
+
+  {id:'R1', x:700, y:40}, {id:'R2', x:700, y:150},
+  {id:'R3', x:850, y:40}, {id:'R4', x:850, y:150},
+
+  {id:'B1', x:700, y:320}, {id:'B2', x:850, y:320},
+  {id:'B3', x:700, y:420}, {id:'B4', x:850, y:420}
+];
+
+async function load(){
+  const { data } = await supabase.from('seats').select('*');
+  const floor = document.getElementById('floor');
+  floor.innerHTML='';
+
+  const door = document.createElement('div');
+  door.className='door';
+  door.style.left='900px';
+  door.style.top='40px';
+  door.innerText='DOOR';
+  floor.appendChild(door);
+
+  layoutMap.forEach(pos=>{
+    const s = data.find(d=>d.station===pos.id) || {};
+
+    const div=document.createElement('div');
+    div.className='station ' + (s.status || '');
+    div.style.left=pos.x+'px';
+    div.style.top=pos.y+'px';
+    div.setAttribute('data-id', pos.id);
+
+    const x = s.pos_x || 0;
+    const y = s.pos_y || 0;
+    div.style.transform = `translate(${x}px, ${y}px)`;
+    div.setAttribute('data-x', x);
+    div.setAttribute('data-y', y);
+
+    div.innerHTML=`
+      <div class='title'>${pos.id}</div>
+      <div class='name'>${s.name || 'Empty'}</div>
+    `;
+
+    div.onclick=()=>edit(pos.id);
+
+    interact(div).draggable({
+      listeners:{
+        move(event){
+          let x=(parseFloat(div.getAttribute('data-x'))||0)+event.dx;
+          let y=(parseFloat(div.getAttribute('data-y'))||0)+event.dy;
+          div.style.transform=`translate(${x}px, ${y}px)`;
+          div.setAttribute('data-x',x);
+          div.setAttribute('data-y',y);
+        },
+        end(){
+          const x=div.getAttribute('data-x');
+          const y=div.getAttribute('data-y');
+          const station=div.getAttribute('data-id');
+
+          supabase.from('seats')
+            .update({pos_x:x,pos_y:y})
+            .eq('station',station);
+        }
+      }
+    });
+
+    floor.appendChild(div);
+  });
+}
+
+function openModal(){ document.getElementById('modal').style.display='flex'; }
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+
+async function save(){
+  const station=document.getElementById('station').value;
+  const name=document.getElementById('name').value;
+  const status=document.getElementById('status').value;
+
+  const { data } = await supabase.from('seats').select('*').eq('station',station);
+
+  if(data.length>0){
+    await supabase.from('seats').update({name,status}).eq('station',station);
+  } else {
+    await supabase.from('seats').insert([{station,name,status}]);
+  }
+
+  closeModal();
+  load();
+}
+
+async function edit(station){
+  const { data } = await supabase.from('seats').select('*').eq('station', station).single();
+  document.getElementById('station').value=station;
+  document.getElementById('name').value=data?.name||'';
+  document.getElementById('status').value=data?.status||'present';
+  openModal();
+}
+
+load();
+</script>
+
+</body>
+</html>
