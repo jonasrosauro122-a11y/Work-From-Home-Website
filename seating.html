@@ -1,83 +1,200 @@
-<style>
-  body {
-    font-family: Arial;
-    text-align: center;
-    background: #f4f4f4;
-  }
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VA Seating (Accurate Layout)</title>
 
-  #room {
-    width: 1000px;
-    height: 650px;
-    margin: auto;
-    position: relative;
-    background: #e9cfa5;
-    border: 4px solid #ddd;
-  }
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f4f4f4;
+    }
 
-  /* TABLE (RECTANGLE LIKE IMAGE) */
-  .table {
-    position: absolute;
-    width: 140px;
-    height: 70px;
-    background: #d8b98a;
-    border: 2px solid #8c6b3f;
-    border-radius: 4px;
-    cursor: move;
-  }
+    #room {
+      width: 1000px;
+      height: 600px;
+      margin: auto;
+      position: relative;
+      background: #e9cfa5;
+      border: 4px solid #ccc;
+    }
 
-  /* CHAIR */
-  .chair {
-    width: 26px;
-    height: 26px;
-    background: #333;
-    border-radius: 6px;
-    position: absolute;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    color: white;
-  }
+    /* TABLE */
+    .table {
+      position: absolute;
+      width: 140px;
+      height: 70px;
+      background: #d8b98a;
+      border: 2px solid #8c6b3f;
+      border-radius: 4px;
+    }
 
-  .occupied { background: #4caf50; }
-  .empty { background: #555; }
+    /* CHAIR */
+    .chair {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: #333;
+      border-radius: 6px;
+      color: white;
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
 
-  /* ROOM ELEMENTS */
-  .glass-wall {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    height: 12px;
-    background: rgba(180,220,255,0.5);
-  }
+    .occupied { background: #4caf50; }
 
-  .door {
-    position: absolute;
-    top: 0;
-    right: 120px;
-    width: 90px;
-    height: 12px;
-    background: rgba(100,200,255,0.9);
-  }
+    /* ROOM ELEMENTS */
+    .glass-wall {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 10px;
+      background: rgba(180,220,255,0.5);
+    }
 
-  .aircon {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 60px;
-    height: 90px;
-    background: #ccc;
-    transform: rotate(20deg);
-  }
+    .door {
+      position: absolute;
+      top: 0;
+      right: 120px;
+      width: 90px;
+      height: 10px;
+      background: rgba(100,200,255,0.9);
+    }
 
-  .podium {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: white;
-    border: 2px solid #ccc;
-    top: 280px;
-    left: 460px;
-  }
-</style>
+    .aircon {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 80px;
+      height: 40px;
+      background: #ccc;
+    }
+
+    .podium {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: white;
+      border: 2px solid #ccc;
+      top: 260px;
+      left: 470px;
+    }
+
+    .divider {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 400px;
+      height: 40px;
+      background: #ddd;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>VA Seating (Accurate Layout)</h2>
+
+<input id="name" placeholder="Name">
+<input id="agency" placeholder="Agency">
+<button onclick="saveSeat()">Save</button>
+
+<h3 id="selected">Click a chair</h3>
+
+<div id="room">
+  <div class="glass-wall"></div>
+  <div class="door"></div>
+  <div class="aircon"></div>
+  <div class="podium"></div>
+  <div class="divider"></div>
+</div>
+
+<script>
+const room = document.getElementById("room");
+
+const seats = {};
+let currentSeat = null;
+
+/* 🎯 TABLE POSITIONS (based on your image) */
+const tables = [
+  // TOP ROW
+  {x:100,y:40,seats:["S1","S2","S3","S4"]},
+  {x:280,y:40,seats:["S5","S6","S7","S8"]},
+  {x:460,y:40,seats:["S9","S10","S11","S12"]},
+
+  // RIGHT CLUSTERS
+  {x:720,y:120,seats:["S13","S14","S15","S16"]},
+  {x:720,y:240,seats:["S17","S18","S19","S20"]},
+  {x:720,y:360,seats:["S21","S22","S23","S24"]},
+
+  // LEFT SIDE
+  {x:100,y:220,seats:["S25","S26","S27","S28"]},
+  {x:100,y:320,seats:["S29","S30","S31","S32"]},
+
+  // BOTTOM CENTER
+  {x:360,y:400,seats:["S33","S34","S35"]}
+];
+
+/* 🎨 RENDER */
+function render() {
+  document.querySelectorAll(".table, .chair").forEach(e => e.remove());
+
+  tables.forEach(table => {
+
+    // TABLE
+    const t = document.createElement("div");
+    t.className = "table";
+    t.style.left = table.x + "px";
+    t.style.top = table.y + "px";
+    room.appendChild(t);
+
+    // CHAIRS around table
+    const positions = [
+      {x:20,y:-30},{x:90,y:-30},
+      {x:20,y:70},{x:90,y:70},
+      {x:-30,y:20},{x:140,y:20}
+    ];
+
+    table.seats.forEach((id,i) => {
+      const c = document.createElement("div");
+      c.className = "chair " + (seats[id] ? "occupied" : "");
+
+      const p = positions[i % positions.length];
+
+      c.style.left = (table.x + p.x) + "px";
+      c.style.top = (table.y + p.y) + "px";
+
+      c.innerText = id.replace("S","");
+      c.onclick = () => selectSeat(id);
+
+      room.appendChild(c);
+    });
+  });
+}
+
+/* SELECT */
+function selectSeat(id){
+  currentSeat = id;
+  selected.innerText = "Selected: " + id;
+}
+
+/* SAVE */
+function saveSeat(){
+  if(!currentSeat) return alert("Select a seat");
+
+  seats[currentSeat] = {
+    name: name.value,
+    agency: agency.value
+  };
+
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
