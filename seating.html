@@ -1,16 +1,41 @@
-<!-- SIMPLE SEATING WEBSITE (NO REACT, NO BACKEND) -->
-<!-- Just open this file in browser -->
-
+<!-- SIMPLE SEATING WEBSITE (MATCHES YOUR SKETCH LAYOUT) -->
 <!DOCTYPE html>
 <html>
 <head>
   <title>VA Seating</title>
   <style>
     body { font-family: Arial; text-align: center; }
-    .grid { display: grid; grid-template-columns: repeat(6, 100px); gap: 10px; justify-content: center; }
-    .seat { border: 1px solid #ccc; padding: 10px; cursor: pointer; border-radius: 10px; }
-    .empty { background: #f0f0f0; }
-    .occupied { background: #b6fcb6; }
+
+    .row { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; }
+
+    .seat {
+      width: 90px;
+      height: 90px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .empty { background: #eee; }
+    .occupied { background: #a5e6a5; }
+
+    .aisle {
+      width: 40px;
+    }
+
+    .door {
+      width: 100px;
+      height: 90px;
+      border: 2px dashed #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -28,69 +53,96 @@
 
 <h3 id="selected">Click a seat</h3>
 
-<div class="grid" id="grid"></div>
+<div id="layout"></div>
 
 <script>
-  const seats = {};
-  let currentSeat = null;
+const seats = {};
+let currentSeat = null;
 
-  const grid = document.getElementById('grid');
+// CUSTOM LAYOUT BASED ON YOUR DRAWING
+const layout = [
+  ['S1','S2','AISLE','S3','S4','AISLE','S5','S6'],
+  ['S7','S8','AISLE','S9','S10','AISLE','S11','S12'],
+  ['AISLE','AISLE','AISLE','AISLE','AISLE','AISLE','DOOR','AISLE'],
+  ['S13','S14','AISLE','S15','S16','AISLE','S17','S18'],
+  ['S19','S20','AISLE','S21','S22','AISLE','S23','S24']
+];
 
-  function render() {
-    grid.innerHTML = '';
+const container = document.getElementById('layout');
 
-    for (let i = 1; i <= 24; i++) {
-      const id = 'S' + i;
+function render() {
+  container.innerHTML = '';
+
+  layout.forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'row';
+
+    row.forEach(cell => {
+      if (cell === 'AISLE') {
+        const gap = document.createElement('div');
+        gap.className = 'aisle';
+        rowDiv.appendChild(gap);
+        return;
+      }
+
+      if (cell === 'DOOR') {
+        const door = document.createElement('div');
+        door.className = 'door';
+        door.innerText = '🚪';
+        rowDiv.appendChild(door);
+        return;
+      }
+
       const seat = document.createElement('div');
-      seat.className = 'seat ' + (seats[id] ? 'occupied' : 'empty');
+      seat.className = 'seat ' + (seats[cell] ? 'occupied' : 'empty');
 
-      seat.innerHTML = `<b>${id}</b><br>` +
-        (seats[id]
-          ? `${seats[id].name}<br>${seats[id].agency}`
+      seat.innerHTML = `<b>${cell}</b><br>` +
+        (seats[cell]
+          ? `${seats[cell].name}<br>${seats[cell].agency}`
           : 'Empty');
 
-      seat.onclick = () => selectSeat(id);
+      seat.onclick = () => selectSeat(cell);
 
-      grid.appendChild(seat);
-    }
+      rowDiv.appendChild(seat);
+    });
+
+    container.appendChild(rowDiv);
+  });
+}
+
+function selectSeat(id) {
+  currentSeat = id;
+  document.getElementById('selected').innerText = 'Selected: ' + id;
+
+  if (seats[id]) {
+    document.getElementById('name').value = seats[id].name;
+    document.getElementById('agency').value = seats[id].agency;
+    document.getElementById('timeIn').value = seats[id].timeIn;
+    document.getElementById('timeOut').value = seats[id].timeOut;
   }
+}
 
-  function selectSeat(id) {
-    currentSeat = id;
-    document.getElementById('selected').innerText = 'Selected: ' + id;
+function saveSeat() {
+  if (!currentSeat) return alert('Select a seat');
 
-    if (seats[id]) {
-      document.getElementById('name').value = seats[id].name;
-      document.getElementById('agency').value = seats[id].agency;
-      document.getElementById('timeIn').value = seats[id].timeIn;
-      document.getElementById('timeOut').value = seats[id].timeOut;
-    }
-  }
-
-  function saveSeat() {
-    if (!currentSeat) return alert('Select a seat');
-
-    seats[currentSeat] = {
-      name: document.getElementById('name').value,
-      agency: document.getElementById('agency').value,
-      timeIn: document.getElementById('timeIn').value,
-      timeOut: document.getElementById('timeOut').value
-    };
-
-    render();
-  }
+  seats[currentSeat] = {
+    name: document.getElementById('name').value,
+    agency: document.getElementById('agency').value,
+    timeIn: document.getElementById('timeIn').value,
+    timeOut: document.getElementById('timeOut').value
+  };
 
   render();
+}
+
+render();
 </script>
 
 </body>
 </html>
 
-<!-- FEATURES -->
-<!-- ✅ Click seat -->
-<!-- ✅ Add name, agency, time -->
-<!-- ✅ Edit by clicking again -->
-<!-- ❌ No database (data resets on refresh) -->
-
-<!-- OPTIONAL NEXT STEP -->
-<!-- Add localStorage if you want to save data -->
+<!-- NOW MATCHES YOUR SKETCH -->
+<!-- ✅ Has aisles -->
+<!-- ✅ Has door -->
+<!-- ✅ Cluster layout -->
+<!-- ✅ Still simple (no backend) -->
