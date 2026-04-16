@@ -1,160 +1,96 @@
-import React, { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+<!-- SIMPLE SEATING WEBSITE (NO REACT, NO BACKEND) -->
+<!-- Just open this file in browser -->
 
-const supabase = createClient(
-  "https://YOUR_PROJECT.supabase.co",
-  "YOUR_PUBLIC_ANON_KEY"
-);
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VA Seating</title>
+  <style>
+    body { font-family: Arial; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(6, 100px); gap: 10px; justify-content: center; }
+    .seat { border: 1px solid #ccc; padding: 10px; cursor: pointer; border-radius: 10px; }
+    .empty { background: #f0f0f0; }
+    .occupied { background: #b6fcb6; }
+  </style>
+</head>
+<body>
 
-// -----------------------------
-// 🧭 EXACT FLOOR LAYOUT (based on sketch)
-// -----------------------------
-const layout = [
-  // LEFT COLUMN (2 vertical stacks)
-  { id: 1, x: 40, y: 40 },
-  { id: 2, x: 40, y: 140 },
-  { id: 3, x: 40, y: 240 },
+<h1>VA Seating System</h1>
 
-  { id: 4, x: 140, y: 40 },
-  { id: 5, x: 140, y: 140 },
-  { id: 6, x: 140, y: 240 },
+<input id="name" placeholder="Name">
+<input id="agency" placeholder="Agency">
+<input type="time" id="timeIn">
+<input type="time" id="timeOut">
 
-  // CENTER BLOCK (2 facing rows)
-  { id: 7, x: 320, y: 40 },
-  { id: 8, x: 420, y: 40 },
-  { id: 9, x: 520, y: 40 },
+<br><br>
 
-  { id: 10, x: 320, y: 200 },
-  { id: 11, x: 420, y: 200 },
-  { id: 12, x: 520, y: 200 },
+<button onclick="saveSeat()">Save</button>
 
-  // MIDDLE AISLE (vertical narrow stations)
-  { id: 13, x: 620, y: 80 },
-  { id: 14, x: 620, y: 180 },
+<h3 id="selected">Click a seat</h3>
 
-  // RIGHT CLUSTER (like sketch grouping)
-  { id: 15, x: 760, y: 60 },
-  { id: 16, x: 880, y: 60 },
+<div class="grid" id="grid"></div>
 
-  { id: 17, x: 760, y: 160 },
-  { id: 18, x: 880, y: 160 },
+<script>
+  const seats = {};
+  let currentSeat = null;
 
-  { id: 19, x: 760, y: 260 },
-  { id: 20, x: 880, y: 260 }
-];
+  const grid = document.getElementById('grid');
 
-// -----------------------------
-// MAIN COMPONENT
-// -----------------------------
-export default function FloorPlanDashboard() {
-  const [stations, setStations] = useState([]);
-  const [search, setSearch] = useState("");
+  function render() {
+    grid.innerHTML = '';
 
-  useEffect(() => {
-    fetchStations();
-  }, []);
+    for (let i = 1; i <= 24; i++) {
+      const id = 'S' + i;
+      const seat = document.createElement('div');
+      seat.className = 'seat ' + (seats[id] ? 'occupied' : 'empty');
 
-  const fetchStations = async () => {
-    const { data } = await supabase.from("va_attendance").select("*");
+      seat.innerHTML = `<b>${id}</b><br>` +
+        (seats[id]
+          ? `${seats[id].name}<br>${seats[id].agency}`
+          : 'Empty');
 
-    if (data) {
-      // merge layout positions
-      const merged = layout.map((pos) => {
-        const match = data.find((d) => d.station_id === pos.id);
-        return {
-          ...pos,
-          ...match
-        };
-      });
-      setStations(merged);
+      seat.onclick = () => selectSeat(id);
+
+      grid.appendChild(seat);
     }
-  };
+  }
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("realtime-attendance")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "va_attendance" },
-        fetchStations
-      )
-      .subscribe();
+  function selectSeat(id) {
+    currentSeat = id;
+    document.getElementById('selected').innerText = 'Selected: ' + id;
 
-    return () => supabase.removeChannel(channel);
-  }, []);
+    if (seats[id]) {
+      document.getElementById('name').value = seats[id].name;
+      document.getElementById('agency').value = seats[id].agency;
+      document.getElementById('timeIn').value = seats[id].timeIn;
+      document.getElementById('timeOut').value = seats[id].timeOut;
+    }
+  }
 
-  const filtered = stations.filter((s) =>
-    s.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  function saveSeat() {
+    if (!currentSeat) return alert('Select a seat');
 
-  return (
-    <div className="min-h-screen bg-gray-200 p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">Office Floor Monitoring</h1>
-        <input
-          placeholder="Search VA..."
-          className="border px-3 py-2 rounded-lg"
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+    seats[currentSeat] = {
+      name: document.getElementById('name').value,
+      agency: document.getElementById('agency').value,
+      timeIn: document.getElementById('timeIn').value,
+      timeOut: document.getElementById('timeOut').value
+    };
 
-      {/* FLOOR */}
-      <div className="relative w-full max-w-[1050px] h-[420px] bg-gray-50 border-4 border-gray-300 rounded-2xl shadow-inner mx-auto">
-        {/* AISLES */}
-        <div className="absolute left-[260px] top-0 w-[40px] h-full bg-gray-200 opacity-50" />
-        <div className="absolute left-[600px] top-0 w-[40px] h-full bg-gray-200 opacity-50" />
+    render();
+  }
 
-        {/* DOOR */}
-        <div className="absolute right-4 top-2 text-xs text-gray-500">DOOR</div>
+  render();
+</script>
 
-        {filtered.map((station) => (
-          <Station key={station.id} data={station} highlight={search} />
-        ))}
-      </div>
-    </div>
-  );
-}
+</body>
+</html>
 
-// -----------------------------
-// STATION COMPONENT (REALISTIC)
-// -----------------------------
-function Station({ data, highlight }) {
-  const statusColor = {
-    present: "bg-green-600",
-    absent: "bg-red-600",
-    break: "bg-yellow-500"
-  };
+<!-- FEATURES -->
+<!-- ✅ Click seat -->
+<!-- ✅ Add name, agency, time -->
+<!-- ✅ Edit by clicking again -->
+<!-- ❌ No database (data resets on refresh) -->
 
-  const isHighlighted = highlight &&
-    data.name?.toLowerCase().includes(highlight.toLowerCase());
-
-  return (
-    <div
-      className={`absolute w-[110px] h-[75px] rounded-xl shadow-lg border border-gray-300 text-white p-2 transition-all ${statusColor[data.status] || "bg-gray-400"} ${
-        isHighlighted ? "scale-110 ring-4 ring-blue-400" : ""
-      }`}
-      style={{ top: data.y, left: data.x }}
-    >
-      <div className="text-[11px] font-semibold truncate">
-        {data.name || "Unassigned"}
-      </div>
-      <div className="text-[10px] capitalize">{data.status || "N/A"}</div>
-      <div className="text-[9px]">{data.time_in && `In: ${data.time_in}`}</div>
-      <div className="text-[9px]">{data.time_out && `Out: ${data.time_out}`}</div>
-    </div>
-  );
-}
-
-/*
-UPDATED DATABASE STRUCTURE
-
-Table: va_attendance
-
-Columns:
-- id
-- station_id (IMPORTANT)
-- name
-- status
-- time_in
-- time_out
-*/
+<!-- OPTIONAL NEXT STEP -->
+<!-- Add localStorage if you want to save data -->
