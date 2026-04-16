@@ -1,148 +1,255 @@
-<!-- SIMPLE SEATING WEBSITE (MATCHES YOUR SKETCH LAYOUT) -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>VA Seating</title>
-  <style>
-    body { font-family: Arial; text-align: center; }
+  <title>VA Seating System</title>
 
-    .row { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; }
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f5f5f5;
+    }
+
+    #room {
+      width: 950px;
+      height: 600px;
+      margin: auto;
+      position: relative;
+      background: #e9cfa5;
+      border: 4px solid #ddd;
+    }
+
+    .table {
+      position: absolute;
+      background: #d8b98a;
+      border: 1px solid #999;
+      border-radius: 6px;
+    }
 
     .seat {
-      width: 90px;
-      height: 90px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      cursor: pointer;
+      width: 60px;
+      height: 60px;
+      position: absolute;
+      border-radius: 8px;
+      font-size: 10px;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
       align-items: center;
-      font-size: 12px;
+      justify-content: center;
+      flex-direction: column;
+      cursor: pointer;
+      border: 1px solid #aaa;
     }
 
     .empty { background: #eee; }
     .occupied { background: #a5e6a5; }
 
-    .aisle {
-      width: 40px;
+    .podium {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      background: white;
+      border: 2px solid #ccc;
+      top: 260px;
+      left: 440px;
+    }
+
+    .divider {
+      position: absolute;
+      width: 350px;
+      height: 40px;
+      background: #ddd;
+      bottom: 0;
+      left: 0;
+    }
+
+    .glass-wall {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 12px;
+      background: rgba(180, 220, 255, 0.6);
     }
 
     .door {
-      width: 100px;
-      height: 90px;
-      border: 2px dashed #999;
+      position: absolute;
+      top: 0;
+      right: 100px;
+      width: 90px;
+      height: 12px;
+      background: rgba(100,200,255,0.9);
+      font-size: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
+
+    .aircon {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 70px;
+      height: 90px;
+      background: #ccc;
+      transform: rotate(20deg);
+    }
+
+    input { margin: 5px; }
   </style>
 </head>
+
 <body>
 
-<h1>VA Seating System</h1>
+<h2>VA Seating System</h2>
 
 <input id="name" placeholder="Name">
 <input id="agency" placeholder="Agency">
 <input type="time" id="timeIn">
 <input type="time" id="timeOut">
-
-<br><br>
-
 <button onclick="saveSeat()">Save</button>
 
 <h3 id="selected">Click a seat</h3>
 
-<div id="layout"></div>
+<div id="room">
+  <div class="glass-wall"></div>
+  <div class="door">🔐 Door</div>
+  <div class="aircon"></div>
+  <div class="divider"></div>
+  <div class="podium"></div>
+</div>
 
 <script>
+// 🔌 SUPABASE
+const supabase = window.supabase.createClient(
+  "YOUR_SUPABASE_URL",
+  "YOUR_ANON_KEY"
+);
+
 const seats = {};
 let currentSeat = null;
+const room = document.getElementById('room');
 
-// CUSTOM LAYOUT BASED ON YOUR DRAWING
-const layout = [
-  ['S1','S2','AISLE','S3','S4','AISLE','S5','S6'],
-  ['S7','S8','AISLE','S9','S10','AISLE','S11','S12'],
-  ['AISLE','AISLE','AISLE','AISLE','AISLE','AISLE','DOOR','AISLE'],
-  ['S13','S14','AISLE','S15','S16','AISLE','S17','S18'],
-  ['S19','S20','AISLE','S21','S22','AISLE','S23','S24']
+// 🪑 TABLE LAYOUT (based on your image)
+const tables = [
+  { id:"T1", x:80, y:40, seats:["S1","S2"] },
+  { id:"T2", x:220, y:40, seats:["S3","S4"] },
+  { id:"T3", x:360, y:40, seats:["S5","S6"] },
+  { id:"T4", x:520, y:40, seats:["S7","S8"] },
+
+  // RIGHT PODS
+  { id:"T5", x:720, y:120, seats:["S9","S10","S11","S12"] },
+  { id:"T6", x:720, y:260, seats:["S13","S14","S15","S16"] },
+
+  // LEFT SIDE
+  { id:"T7", x:80, y:200, seats:["S17","S18","S19","S20"] },
+
+  // BOTTOM ROW
+  { id:"T8", x:300, y:420, seats:["S21","S22","S23"] }
 ];
 
-const container = document.getElementById('layout');
+// 📥 LOAD FROM DATABASE
+async function loadSeats() {
+  const { data, error } = await supabase.from("seats").select("*");
+  if (error) return console.error(error);
 
+  data.forEach(s => seats[s.id] = s);
+}
+
+// 🎨 RENDER
 function render() {
-  container.innerHTML = '';
+  document.querySelectorAll('.seat, .table').forEach(e => e.remove());
 
-  layout.forEach(row => {
-    const rowDiv = document.createElement('div');
-    rowDiv.className = 'row';
+  tables.forEach(table => {
 
-    row.forEach(cell => {
-      if (cell === 'AISLE') {
-        const gap = document.createElement('div');
-        gap.className = 'aisle';
-        rowDiv.appendChild(gap);
-        return;
+    // draw table
+    const t = document.createElement('div');
+    t.className = 'table';
+    t.style.left = table.x + 'px';
+    t.style.top = table.y + 'px';
+    t.style.width = (table.seats.length > 2 ? 140 : 100) + 'px';
+    t.style.height = (table.seats.length > 2 ? 100 : 60) + 'px';
+    room.appendChild(t);
+
+    // draw seats
+    table.seats.forEach((seatId, i) => {
+      const s = document.createElement('div');
+      s.className = 'seat ' + (seats[seatId] ? 'occupied' : 'empty');
+
+      let offsetX = 0, offsetY = 0;
+
+      if (table.seats.length === 2) {
+        offsetX = i * 60;
+        offsetY = -60;
+      } else if (table.seats.length === 3) {
+        offsetX = i * 60;
+        offsetY = -60;
+      } else {
+        const pos = [
+          [-50, 0], [140, 0],
+          [-50, 60], [140, 60]
+        ];
+        offsetX = pos[i][0];
+        offsetY = pos[i][1];
       }
 
-      if (cell === 'DOOR') {
-        const door = document.createElement('div');
-        door.className = 'door';
-        door.innerText = '🚪';
-        rowDiv.appendChild(door);
-        return;
-      }
+      s.style.left = (table.x + offsetX) + 'px';
+      s.style.top = (table.y + offsetY) + 'px';
 
-      const seat = document.createElement('div');
-      seat.className = 'seat ' + (seats[cell] ? 'occupied' : 'empty');
+      s.innerHTML = `<b>${seatId}</b><br>` +
+        (seats[seatId] ? seats[seatId].name : 'Empty');
 
-      seat.innerHTML = `<b>${cell}</b><br>` +
-        (seats[cell]
-          ? `${seats[cell].name}<br>${seats[cell].agency}`
-          : 'Empty');
+      s.onclick = () => selectSeat(seatId);
 
-      seat.onclick = () => selectSeat(cell);
-
-      rowDiv.appendChild(seat);
+      room.appendChild(s);
     });
 
-    container.appendChild(rowDiv);
   });
 }
 
+// 🎯 SELECT
 function selectSeat(id) {
   currentSeat = id;
-  document.getElementById('selected').innerText = 'Selected: ' + id;
+  selected.innerText = "Selected: " + id;
 
   if (seats[id]) {
-    document.getElementById('name').value = seats[id].name;
-    document.getElementById('agency').value = seats[id].agency;
-    document.getElementById('timeIn').value = seats[id].timeIn;
-    document.getElementById('timeOut').value = seats[id].timeOut;
+    name.value = seats[id].name || "";
+    agency.value = seats[id].agency || "";
+    timeIn.value = seats[id].time_in || "";
+    timeOut.value = seats[id].time_out || "";
   }
 }
 
-function saveSeat() {
-  if (!currentSeat) return alert('Select a seat');
+// 💾 SAVE
+async function saveSeat() {
+  if (!currentSeat) return alert("Select a seat");
 
-  seats[currentSeat] = {
-    name: document.getElementById('name').value,
-    agency: document.getElementById('agency').value,
-    timeIn: document.getElementById('timeIn').value,
-    timeOut: document.getElementById('timeOut').value
+  const payload = {
+    id: currentSeat,
+    name: name.value,
+    agency: agency.value,
+    time_in: timeIn.value,
+    time_out: timeOut.value
   };
 
+  const { error } = await supabase.from("seats").upsert(payload);
+
+  if (error) {
+    alert("Save failed");
+    console.log(error);
+    return;
+  }
+
+  seats[currentSeat] = payload;
   render();
 }
 
-render();
+// 🚀 INIT
+(async () => {
+  await loadSeats();
+  render();
+})();
 </script>
 
 </body>
 </html>
-
-<!-- NOW MATCHES YOUR SKETCH -->
-<!-- ✅ Has aisles -->
-<!-- ✅ Has door -->
-<!-- ✅ Cluster layout -->
-<!-- ✅ Still simple (no backend) -->
