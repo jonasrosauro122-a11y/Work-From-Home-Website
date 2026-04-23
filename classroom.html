@@ -1,0 +1,39 @@
+<h1>🧑‍🏫 Classroom Assignment</h1>
+
+<input id="name" placeholder="VA Name">
+<select id="classroom">
+  <option>Classroom A</option>
+  <option>Classroom B</option>
+</select>
+
+<button onclick="addVA()">Add VA</button>
+
+<ul id="vaList"></ul>
+
+<script>
+function addVA() {
+  let name = document.getElementById("name").value;
+  let classroom = document.getElementById("classroom").value;
+
+  let va = { name, classroom };
+  
+  let data = JSON.parse(localStorage.getItem("vas")) || [];
+  data.push(va);
+  localStorage.setItem("vas", JSON.stringify(data));
+
+  displayVA();
+}
+
+function displayVA() {
+  let list = document.getElementById("vaList");
+  list.innerHTML = "";
+
+  let data = JSON.parse(localStorage.getItem("vas")) || [];
+
+  data.forEach(v => {
+    list.innerHTML += `<li>${v.name} - ${v.classroom}</li>`;
+  });
+}
+
+displayVA();
+</script>
