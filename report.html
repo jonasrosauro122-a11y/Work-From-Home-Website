@@ -1,1 +1,51 @@
+<h1>📈 VA Report</h1>
 
+<button onclick="generateReport()">Generate Report</button>
+
+<div id="report"></div>
+
+<script>
+function generateReport() {
+  let data = JSON.parse(localStorage.getItem("evals")) || [];
+  let output = "";
+
+  data.forEach(v => {
+    let avg = (v.comm + v.accuracy + v.speed) / 3;
+
+    let status = "";
+    let insight = "";
+
+    // 🔴 AI LOGIC (simple but powerful)
+    if (avg < 60) {
+      status = "🔴 RED FLAG";
+      insight = "Needs immediate coaching. Focus on accuracy and fundamentals.";
+    } else if (avg < 80) {
+      status = "🟡 AVERAGE";
+      insight = "Can improve consistency and speed.";
+    } else {
+      status = "🟢 GOOD";
+      insight = "Performing well. Ready for advanced tasks.";
+    }
+
+    // deeper insight
+    if (v.accuracy < 60) {
+      insight += " ⚠️ Major issue in accuracy.";
+    }
+    if (v.comm < 60) {
+      insight += " ⚠️ Needs communication training.";
+    }
+
+    output += `
+      <div>
+        <h3>${v.name}</h3>
+        <p>Score: ${avg.toFixed(2)}</p>
+        <p>Status: ${status}</p>
+        <p>AI Insight: ${insight}</p>
+      </div>
+      <hr>
+    `;
+  });
+
+  document.getElementById("report").innerHTML = output;
+}
+</script>
