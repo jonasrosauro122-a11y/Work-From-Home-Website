@@ -1,51 +1,111 @@
-<h1>📈 VA Report</h1>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Reports</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 
-<button onclick="generateReport()">Generate Report</button>
+<body>
 
-<div id="report"></div>
+<div class="navbar">
+  <h2>LAVA VA SYSTEM</h2>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="calendar.html">📅 Calendar</a>
+    <a href="classroom.html">🧑‍🏫 Classroom</a>
+    <a href="evaluation.html">📊 Evaluation</a>
+    <a href="report.html" class="active">📈 Reports</a>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="card">
+  <h2>📈 VA Performance Report</h2>
+  <button onclick="generate()">Generate Report</button>
+</div>
+
+<div id="output"></div>
+
+</div>
 
 <script>
-function generateReport() {
-  let data = JSON.parse(localStorage.getItem("evals")) || [];
-  let output = "";
+const supabaseClient = supabase.createClient(
+  "https://rapwcdljrqvurrukumcj.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhcHdjZGxqcnF2dXJydWt1bWNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDYwMzUsImV4cCI6MjA5MTMyMjAzNX0.C7XzwOeluKknt6Gx48eI9890uG-XgekLBs_cc7vjojg"
+);
+
+function getInsight(v) {
+  let avg = (v.comm + v.accuracy + v.speed) / 3;
+
+  let status = "";
+  let insight = "";
+
+  if (avg < 60) {
+    status = "🔴 RED FLAG";
+    insight = "Needs urgent coaching.";
+  } else if (avg < 80) {
+    status = "🟡 AVERAGE";
+    insight = "Needs improvement in consistency.";
+  } else {
+    status = "🟢 GOOD";
+    insight = "Ready for higher-level tasks.";
+  }
+
+  if (v.accuracy < 60) insight += " ⚠️ Accuracy is weak.";
+  if (v.comm < 60) insight += " ⚠️ Communication needs training.";
+  if (v.speed < 60) insight += " ⚠️ Speed needs improvement.";
+
+  return { avg, status, insight };
+}
+
+async function generate() {
+  const { data } = await supabaseClient.from("evaluations").select("*");
+
+  let grouped = {};
 
   data.forEach(v => {
-    let avg = (v.comm + v.accuracy + v.speed) / 3;
+    if (!grouped[v.name]) grouped[v.name] = [];
+    grouped[v.name].push(v);
+  });
 
-    let status = "";
-    let insight = "";
+  let html = "";
 
-    // 🔴 AI LOGIC (simple but powerful)
-    if (avg < 60) {
-      status = "🔴 RED FLAG";
-      insight = "Needs immediate coaching. Focus on accuracy and fundamentals.";
-    } else if (avg < 80) {
-      status = "🟡 AVERAGE";
-      insight = "Can improve consistency and speed.";
-    } else {
-      status = "🟢 GOOD";
-      insight = "Performing well. Ready for advanced tasks.";
-    }
+  Object.keys(grouped).forEach(name => {
+    let records = grouped[name];
 
-    // deeper insight
-    if (v.accuracy < 60) {
-      insight += " ⚠️ Major issue in accuracy.";
-    }
-    if (v.comm < 60) {
-      insight += " ⚠️ Needs communication training.";
-    }
+    let avgComm = 0, avgAcc = 0, avgSpeed = 0;
 
-    output += `
-      <div>
-        <h3>${v.name}</h3>
-        <p>Score: ${avg.toFixed(2)}</p>
-        <p>Status: ${status}</p>
-        <p>AI Insight: ${insight}</p>
+    records.forEach(r => {
+      avgComm += r.comm;
+      avgAcc += r.accuracy;
+      avgSpeed += r.speed;
+    });
+
+    avgComm /= records.length;
+    avgAcc /= records.length;
+    avgSpeed /= records.length;
+
+    let result = getInsight({
+      comm: avgComm,
+      accuracy: avgAcc,
+      speed: avgSpeed
+    });
+
+    html += `
+      <div class="card">
+        <h3>${name}</h3>
+        <p>Score: ${result.avg.toFixed(2)}</p>
+        <p>Status: ${result.status}</p>
+        <p><b>AI Insight:</b> ${result.insight}</p>
       </div>
-      <hr>
     `;
   });
 
-  document.getElementById("report").innerHTML = output;
+  document.getElementById("output").innerHTML = html;
 }
 </script>
+
+</body>
+</html>
