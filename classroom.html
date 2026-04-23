@@ -1,24 +1,187 @@
-<h1>🧑‍🏫 Classroom Assignment</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<input id="name" placeholder="VA Name">
-<select id="classroom">
-  <option>Classroom A</option>
-  <option>Classroom B</option>
-</select>
+<title>Classroom Assignment</title>
 
-<button onclick="addVA()">Add VA</button>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-<ul id="vaList"></ul>
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  color: white;
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #0ea5e9, #9333ea);
+  background-size: 400% 400%;
+  animation: gradientBG 12s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* NAV */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 25px;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(10px);
+}
+
+.navbar h2 {
+  margin: 0;
+}
+
+.navbar a {
+  color: white;
+  text-decoration: none;
+  margin-left: 15px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+}
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* CARD UI */
+.card {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* INPUTS */
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+}
+
+/* BUTTON */
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg,#38bdf8,#6366f1);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+/* VA LIST */
+.va-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+}
+
+.va-card {
+  background: rgba(255,255,255,0.08);
+  padding: 15px;
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  transition: 0.3s;
+  animation: fadeIn 0.5s ease;
+}
+
+.va-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255,255,255,0.15);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tag {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<div class="navbar">
+  <h2>🧑‍🏫 Classroom System</h2>
+  <div>
+    <a href="index.html">Dashboard</a>
+    <a href="classroom.html">Classroom</a>
+    <a href="calendar.html">Calendar</a>
+    <a href="evaluation.html">Evaluation</a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- FORM -->
+<div class="card">
+  <h2>Assign VA to Classroom</h2>
+
+  <input id="name" placeholder="VA Name">
+
+  <select id="classroom">
+    <option>Classroom A</option>
+    <option>Classroom B</option>
+  </select>
+
+  <button onclick="addVA()">Add VA</button>
+</div>
+
+<!-- OUTPUT -->
+<div class="card">
+  <h3>VA List</h3>
+  <div id="vaList" class="va-grid"></div>
+</div>
+
+</div>
 
 <script>
 function addVA() {
   let name = document.getElementById("name").value;
   let classroom = document.getElementById("classroom").value;
 
+  if (!name) {
+    alert("Enter VA name");
+    return;
+  }
+
   let va = { name, classroom };
-  
+
   let data = JSON.parse(localStorage.getItem("vas")) || [];
   data.push(va);
+
   localStorage.setItem("vas", JSON.stringify(data));
 
   displayVA();
@@ -31,9 +194,17 @@ function displayVA() {
   let data = JSON.parse(localStorage.getItem("vas")) || [];
 
   data.forEach(v => {
-    list.innerHTML += `<li>${v.name} - ${v.classroom}</li>`;
+    list.innerHTML += `
+      <div class="va-card">
+        <b>${v.name}</b>
+        <div class="tag">📍 ${v.classroom}</div>
+      </div>
+    `;
   });
 }
 
 displayVA();
 </script>
+
+</body>
+</html>
