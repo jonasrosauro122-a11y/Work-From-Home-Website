@@ -1,27 +1,93 @@
-<h1>📊 Weekly Evaluation</h1>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Evaluation</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 
-<input id="vaName" placeholder="VA Name">
+<body>
 
-<input id="comm" type="number" placeholder="Communication (0-100)">
-<input id="accuracy" type="number" placeholder="Accuracy (0-100)">
-<input id="speed" type="number" placeholder="Speed (0-100)">
+<div class="navbar">
+  <h2>LAVA VA SYSTEM</h2>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="calendar.html">📅 Calendar</a>
+    <a href="classroom.html">🧑‍🏫 Classroom</a>
+    <a href="evaluation.html" class="active">📊 Evaluation</a>
+    <a href="report.html">📈 Reports</a>
+  </div>
+</div>
 
-<button onclick="saveEval()">Save Evaluation</button>
+<div class="container">
+
+<div class="card">
+  <h2>📊 Weekly Evaluation</h2>
+
+  <input id="vaName" placeholder="VA Name">
+  <input id="week" type="number" placeholder="Week #">
+
+  <input id="comm" type="number" placeholder="Communication (0-100)">
+  <input id="accuracy" type="number" placeholder="Accuracy (0-100)">
+  <input id="speed" type="number" placeholder="Speed (0-100)">
+
+  <button onclick="saveEval()">Save Evaluation</button>
+</div>
+
+<div class="card">
+  <h3>Saved Evaluations</h3>
+  <div id="list"></div>
+</div>
+
+</div>
 
 <script>
-function saveEval() {
-  let evalData = {
+const supabaseClient = supabase.createClient(
+  "https://rapwcdljrqvurrukumcj.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhcHdjZGxqcnF2dXJydWt1bWNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDYwMzUsImV4cCI6MjA5MTMyMjAzNX0.C7XzwOeluKknt6Gx48eI9890uG-XgekLBs_cc7vjojg"
+);
+
+async function saveEval() {
+  const data = {
     name: vaName.value,
+    week: Number(week.value),
     comm: Number(comm.value),
     accuracy: Number(accuracy.value),
     speed: Number(speed.value)
   };
 
-  let data = JSON.parse(localStorage.getItem("evals")) || [];
-  data.push(evalData);
+  if (!data.name || !data.week) {
+    alert("Complete fields");
+    return;
+  }
 
-  localStorage.setItem("evals", JSON.stringify(data));
+  await supabaseClient.from("evaluations").insert([data]);
 
   alert("Saved!");
+  loadEval();
 }
+
+async function loadEval() {
+  const { data } = await supabaseClient.from("evaluations").select("*").order("id", { ascending: false });
+
+  let html = "";
+
+  data.forEach(v => {
+    let avg = (v.comm + v.accuracy + v.speed) / 3;
+
+    html += `
+      <div class="card">
+        <b>${v.name}</b> (Week ${v.week})<br>
+        Score: ${avg.toFixed(2)}
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+loadEval();
 </script>
+
+</body>
+</html>
