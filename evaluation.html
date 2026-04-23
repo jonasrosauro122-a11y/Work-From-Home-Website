@@ -1,0 +1,27 @@
+<h1>📊 Weekly Evaluation</h1>
+
+<input id="vaName" placeholder="VA Name">
+
+<input id="comm" type="number" placeholder="Communication (0-100)">
+<input id="accuracy" type="number" placeholder="Accuracy (0-100)">
+<input id="speed" type="number" placeholder="Speed (0-100)">
+
+<button onclick="saveEval()">Save Evaluation</button>
+
+<script>
+function saveEval() {
+  let evalData = {
+    name: vaName.value,
+    comm: Number(comm.value),
+    accuracy: Number(accuracy.value),
+    speed: Number(speed.value)
+  };
+
+  let data = JSON.parse(localStorage.getItem("evals")) || [];
+  data.push(evalData);
+
+  localStorage.setItem("evals", JSON.stringify(data));
+
+  alert("Saved!");
+}
+</script>
