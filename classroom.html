@@ -2,240 +2,198 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Classroom System</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-
+<title>VA Classroom Assignment</title>
 <style>
-body {
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  color: white;
-  background: linear-gradient(-45deg, #0f172a, #1e293b, #0ea5e9, #9333ea);
-  background-size: 400% 400%;
-  animation: gradientBG 12s ease infinite;
-}
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        display: flex;
+        height: 100vh;
+    }
 
-@keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+    /* TOP FORM */
+    .top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #F4F4F4;
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+        border-bottom: 1px solid #ccc;
+        z-index: 1000;
+    }
 
-/* NAV */
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  padding: 15px 25px;
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(10px);
-}
+    .top-bar input, .top-bar select, .top-bar button {
+        padding: 6px;
+    }
 
-.navbar a {
-  color: white;
-  text-decoration: none;
-  margin-left: 15px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.1);
-}
+    /* LEFT SIDEBAR */
+    .sidebar {
+        width: 200px;
+        background: #2C3E50;
+        color: white;
+        padding-top: 60px;
+    }
 
-/* CONTAINER */
-.container {
-  max-width: 1100px;
-  margin: auto;
-  padding: 20px;
-}
+    .trainer {
+        padding: 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+    }
 
-/* CARD */
-.card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  padding: 20px;
-  border-radius: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
+    .trainer:hover {
+        background: #34495E;
+    }
 
-/* INPUTS */
-input, select {
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 10px;
-  border: none;
-  outline: none;
-}
+    /* MAIN CONTENT */
+    .main {
+        flex: 1;
+        padding-top: 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #ECF0F1;
+    }
 
-/* BUTTON */
-button {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg,#38bdf8,#6366f1);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-}
+    .classroom {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        grid-gap: 15px;
+        text-align: center;
+    }
 
-button:hover {
-  transform: scale(1.05);
-}
+    .seat {
+        width: 100px;
+        height: 80px;
+        background: white;
+        border: 2px solid #3498DB;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 12px;
+        padding: 5px;
+    }
 
-/* TABLE STYLE */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th, .table td {
-  padding: 12px;
-  text-align: center;
-}
-
-.table th {
-  background: rgba(255,255,255,0.2);
-}
-
-.table tr {
-  transition: 0.3s;
-}
-
-.table tr:hover {
-  background: rgba(255,255,255,0.1);
-}
-
-/* CLASSROOM TITLE */
-.title {
-  margin-bottom: 10px;
-  font-size: 18px;
-}
-
-/* ANIMATION */
-.fade {
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from {opacity: 0; transform: translateY(20px);}
-  to {opacity: 1; transform: translateY(0);}
-}
+    .trainer-photo {
+        grid-column: span 3;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
 </style>
 </head>
-
 <body>
 
-<!-- NAV -->
-<div class="navbar">
-  <h2>🧑‍🏫 Classroom System</h2>
-  <div>
-    <a href="index.html">Dashboard</a>
-    <a href="calendar.html">Calendar</a>
-    <a href="evaluation.html">Evaluation</a>
-    <a href="report.html">Reports</a>
-  </div>
+<!-- TOP FORM -->
+<div class="top-bar">
+    <input type="text" id="vaName" placeholder="VA Name">
+
+    <select id="agency">
+        <option value="">Select Agency</option>
+        <option>Agency 1</option>
+        <option>Agency 2</option>
+    </select>
+
+    <select id="classroom">
+        <option value="">Classroom</option>
+        <option>A</option>
+        <option>B</option>
+    </select>
+
+    <select id="trainerSelect">
+        <option value="">Trainer</option>
+        <option>Au</option>
+        <option>Chanie</option>
+        <option>Leo</option>
+    </select>
+
+    <button onclick="addVA()">Add VA</button>
 </div>
 
-<div class="container">
-
-<!-- FORM -->
-<div class="card">
-  <h2>Assign VA to Classroom</h2>
-
-  <input id="name" placeholder="VA Name">
-
-  <select id="classroom">
-    <option>Classroom A</option>
-    <option>Classroom B</option>
-  </select>
-
-  <button onclick="addVA()">Add VA</button>
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="trainer" onclick="showTrainer('Au')">Au</div>
+    <div class="trainer" onclick="showTrainer('Chanie')">Chanie</div>
+    <div class="trainer" onclick="showTrainer('Leo')">Leo</div>
 </div>
 
-<!-- CLASSROOM A -->
-<div class="card fade">
-  <div class="title">🅰️ Classroom A</div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>VA Name</th>
-        <th>Classroom</th>
-      </tr>
-    </thead>
-    <tbody id="classA"></tbody>
-  </table>
-</div>
-
-<!-- CLASSROOM B -->
-<div class="card fade">
-  <div class="title">🅱️ Classroom B</div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>VA Name</th>
-        <th>Classroom</th>
-      </tr>
-    </thead>
-    <tbody id="classB"></tbody>
-  </table>
-</div>
-
+<!-- MAIN DISPLAY -->
+<div class="main">
+    <div id="classroomView"></div>
 </div>
 
 <script>
-function addVA() {
-  let name = document.getElementById("name").value;
-  let classroom = document.getElementById("classroom").value;
+    const data = {
+        Au: [],
+        Chanie: [],
+        Leo: []
+    };
 
-  if (!name) {
-    alert("Enter VA name");
-    return;
-  }
+    let currentTrainer = "Au";
 
-  let data = JSON.parse(localStorage.getItem("vas")) || [];
+    function showTrainer(name) {
+        currentTrainer = name;
+        renderClassroom();
+    }
 
-  data.push({
-    name: name,
-    classroom: classroom
-  });
+    function addVA() {
+        const name = document.getElementById("vaName").value;
+        const agency = document.getElementById("agency").value;
+        const classroom = document.getElementById("classroom").value;
+        const trainer = document.getElementById("trainerSelect").value;
 
-  localStorage.setItem("vas", JSON.stringify(data));
+        if (!name || !trainer) {
+            alert("Please enter VA name and trainer");
+            return;
+        }
 
-  document.getElementById("name").value = "";
+        if (data[trainer].length >= 9) {
+            alert("Max 9 seats only!");
+            return;
+        }
 
-  displayVA();
-}
+        data[trainer].push({
+            name,
+            agency,
+            classroom
+        });
 
-function displayVA() {
-  let classA = document.getElementById("classA");
-  let classB = document.getElementById("classB");
+        renderClassroom();
+    }
 
-  classA.innerHTML = "";
-  classB.innerHTML = "";
+    function renderClassroom() {
+        const container = document.getElementById("classroomView");
+        container.innerHTML = "";
 
-  let data = JSON.parse(localStorage.getItem("vas")) || [];
+        const classroomDiv = document.createElement("div");
+        classroomDiv.className = "classroom";
 
-  data.forEach(v => {
-    let row = `
-      <tr>
-        <td>${v.name}</td>
-        <td>${v.classroom}</td>
-      </tr>
-    `;
+        const trainerTitle = document.createElement("div");
+        trainerTitle.className = "trainer-photo";
+        trainerTitle.innerText = currentTrainer + " (Trainer)";
+        classroomDiv.appendChild(trainerTitle);
 
-    if (v.classroom === "Classroom A") {
-      classA.innerHTML += row;
-    } else {
-      classB.innerHTML += row;
-    }
-  });
-}
+        const students = data[currentTrainer];
 
-displayVA();
+        for (let i = 0; i < 9; i++) {
+            const seat = document.createElement("div");
+            seat.className = "seat";
+
+            if (students[i]) {
+                seat.innerText = students[i].name + "\n(" + students[i].classroom + ")";
+            } else {
+                seat.innerText = "Empty Seat";
+            }
+
+            classroomDiv.appendChild(seat);
+        }
+
+        container.appendChild(classroomDiv);
+    }
+
+    // Initial load
+    renderClassroom();
 </script>
 
 </body>
